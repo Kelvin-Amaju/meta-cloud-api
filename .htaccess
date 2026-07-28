@@ -1,0 +1,48 @@
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  # Recommended default index files
+  DirectoryIndex index.php index.html
+
+  # --------------------------------------------------
+  # 1) Redirect explicit requests for .php or .html
+  #    to the extensionless (canonical) URL
+  #    e.g.  /about.php  ->  /about   (301)
+  # --------------------------------------------------
+  RewriteCond %{THE_REQUEST} \s/([^\s?]+?)\.(php|html)[\s?] [NC]
+  RewriteRule ^ /%1 [R=301,L]
+
+  # --------------------------------------------------
+  # 2) If the request maps to an existing file or dir, serve it
+  # --------------------------------------------------
+  RewriteCond %{REQUEST_FILENAME} -f [OR]
+  RewriteCond %{REQUEST_FILENAME} -d
+  RewriteRule ^ - [L]
+
+  # --------------------------------------------------
+  # 3) Keep API routing behavior (preserve existing site rules)
+  # --------------------------------------------------
+  RewriteRule ^api(/.*)?$ api/index.html [L,QSA]
+
+  # --------------------------------------------------
+  # 4) Internally rewrite extensionless requests to .php or .html
+  #    Preference: .php first, then .html
+  #    e.g.  /about  ->  /about.php  (internal)
+  # --------------------------------------------------
+  # If not an existing file/dir and adding .php yields a file -> serve it
+  RewriteCond %{REQUEST_FILENAME} !-f
+  RewriteCond %{REQUEST_FILENAME} !-d
+  RewriteCond %{REQUEST_FILENAME}.php -f
+  RewriteRule ^(.*)$ $1.php [L]
+
+  # If not an existing file/dir and adding .html yields a file -> serve it
+  RewriteCond %{REQUEST_FILENAME} !-f
+  RewriteCond %{REQUEST_FILENAME} !-d
+  RewriteCond %{REQUEST_FILENAME}.html -f
+  RewriteRule ^(.*)$ $1.html [L]
+
+  # --------------------------------------------------
+  # 5) Fallback for Single Page App / React Router
+  #    (kept last so it doesn't override real files)
+  # --------------------------------------------------
+  RewriteRule ^ index.html [L]
+</IfModule>

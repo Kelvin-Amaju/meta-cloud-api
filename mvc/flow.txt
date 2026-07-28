@@ -1,0 +1,20 @@
+Client
+   |
+POST /notifications
+   |
+   v
+Notification API
+   |
+Save to DB
+   |
+Queue Message
+   |
+Worker
+   |
+WhatsApp Business API
+   |
+User receives message
+   |
+Webhook
+   |
+Update status
