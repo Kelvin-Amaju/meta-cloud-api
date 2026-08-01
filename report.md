@@ -81,8 +81,6 @@ config/
 
 includes/
 
-public/
-
 storage/
 
 uploads/

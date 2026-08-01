@@ -9,19 +9,46 @@ $config = require __DIR__ . '/../config/config.php';
  *
  * @param string $to Recipient phone number with country code (e.g., "2348012345678")
  * @param string $message Text content to send
- * @return array
+ * @param array|null $tenantCredentials Optional tenant credentials array containing phone_number_id, access_token, api_version
+ * @return array Response structure ['success' => bool, 'status' => int, 'data' => array, 'error' => string|null]
  */
-function sendTextMessage($to, $message)
+function sendTextMessage($to, $message, ?array $tenantCredentials = null)
 {
     global $config;
 
-    $apiVersion   = $config['api_version'] ?? 'v25.0';
-    $phoneNumberId = $config['phone_number_id'] ?? '';
-    $accessToken   = $config['access_token'] ?? '';
+    $apiVersion    = $tenantCredentials['api_version'] ?? $config['api_version'] ?? 'v25.0';
+    
+    // Resolve Phone Number ID (tenant specific -> fallback to env config)
+    $phoneNumberId = !empty($tenantCredentials['phone_number_id']) 
+        ? $tenantCredentials['phone_number_id'] 
+        : ($config['phone_number_id'] ?? '');
+
+    // Resolve Access Token (tenant specific -> fallback to env config)
+    // Note: If tenant token is placeholder 'EAAG...', fall back to .env if available
+    $tenantToken = $tenantCredentials['access_token'] ?? '';
+    if (!empty($tenantToken) && $tenantToken !== 'EAAG...') {
+        $accessToken = $tenantToken;
+    } else {
+        $accessToken = $config['access_token'] ?? '';
+    }
+
+    if (empty($phoneNumberId)) {
+        return [
+            'success' => false,
+            'status'  => 400,
+            'error'   => 'Missing WhatsApp Phone Number ID for the selected business sender.'
+        ];
+    }
+
+    if (empty($accessToken)) {
+        return [
+            'success' => false,
+            'status'  => 401,
+            'error'   => 'Missing WhatsApp Access Token for the selected business sender.'
+        ];
+    }
 
     $url = "https://graph.facebook.com/{$apiVersion}/{$phoneNumberId}/messages";
-
-    //$url = "http://localhost/netgrity/whatsapp-api/mock_meta.php/{$apiVersion}/{$phoneNumberId}/messages"; // Mock endpoint for testing
 
     $payload = [
         "messaging_product" => "whatsapp",
@@ -57,6 +84,7 @@ function sendTextMessage($to, $message)
     if ($response === false) {
         return [
             'success' => false,
+            'status'  => 0,
             'error'   => 'cURL error: ' . $curlError
         ];
     }

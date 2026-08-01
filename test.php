@@ -4,7 +4,7 @@
 
 require_once __DIR__ . '/includes/init.php';
 
-$config = require __DIR__ . '/config/config.php';
+$config = require __DIR__ . '/config/config_test.php';
 
 // Diagnostic state variables
 $apiVersion    = $config['api_version'] ?? 'v18.0';
@@ -67,7 +67,7 @@ function getQualityBadge(string $rating): string
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Meta Cloud API Diagnostics - Netgrity</title>
     <!-- Bootstrap 5 CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- Bootstrap Icons -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
 </head>
@@ -77,11 +77,11 @@ function getQualityBadge(string $rating): string
     <!-- Top Navbar -->
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4 shadow-sm">
         <div class="container">
-            <a class="navbar-brand d-flex align-items-center gap-2" href="index.php">
+            <a class="navbar-brand d-flex align-items-center gap-2" href="index">
                 <i class="bi bi-whatsapp text-success fs-4"></i>
                 <span class="fw-bold">Netgrity</span> WhatsApp API
             </a>
-            <a href="index.php" class="btn btn-outline-light btn-sm">
+            <a href="index" class="btn btn-outline-light btn-sm">
                 <i class="bi bi-arrow-left me-1"></i> Dashboard
             </a>
         </div>
@@ -95,7 +95,7 @@ function getQualityBadge(string $rating): string
                 <h4 class="card-title fw-bold mb-0 text-dark d-flex align-items-center gap-2">
                     <i class="bi bi-cpu text-primary"></i> Meta Cloud API Diagnostics
                 </h4>
-                <a href="test.php" class="btn btn-sm btn-outline-secondary">
+                <a href="test" class="btn btn-sm btn-outline-secondary">
                     <i class="bi bi-arrow-clockwise me-1"></i> Re-test
                 </a>
             </div>
@@ -202,10 +202,10 @@ function getQualityBadge(string $rating): string
 
                 <!-- Action Footer Buttons -->
                 <div class="d-flex align-items-center justify-content-between pt-3 border-top">
-                    <a href="index.php" class="btn btn-light border text-muted">
+                    <a href="index" class="btn btn-light border text-muted">
                         <i class="bi bi-arrow-left me-1"></i> Dashboard
                     </a>
-                    <a href="send.php" class="btn btn-success fw-semibold">
+                    <a href="send" class="btn btn-success fw-semibold">
                         <i class="bi bi-paperplane-fill me-1"></i> Send Test Message
                     </a>
                 </div>
@@ -216,7 +216,7 @@ function getQualityBadge(string $rating): string
     </div>
 
     <!-- Bootstrap 5 JS Bundle -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 
 </html>

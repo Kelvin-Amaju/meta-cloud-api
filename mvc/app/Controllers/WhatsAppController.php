@@ -23,6 +23,8 @@ class WhatsAppController
         $phone = trim($_POST['phone'] ?? '');
         $message = trim($_POST['message'] ?? '');
 
+        $allowReply = isset($_POST['allow_reply']) ? 1 : 0;
+
         if ($phone === '' || $message === '') {
             $_SESSION['error'] = 'Phone number and message are required.';
             header('Location: /whatsapp/send');

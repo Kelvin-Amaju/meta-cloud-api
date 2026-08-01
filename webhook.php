@@ -1,44 +1,57 @@
 <?php
 
-$config = require 'config/config.php';
+// webhook.php
 
-require 'includes/webhook_parser.php';
+$config = require __DIR__ . '/config/config.php';
 
-$message = parseWebhook($payload);
+require __DIR__ . '/includes/logger.php';
+require __DIR__ . '/includes/webhook_parser.php';
 
-if ($message) {
+// ─────────────────────────────────────────────
+// 1. WEBHOOK VERIFICATION (GET — Meta handshake)
+// ─────────────────────────────────────────────
+if ($_SERVER['REQUEST_METHOD'] === 'GET') {
 
-    print_r($message);
+    $mode        = $_GET['hub_mode']         ?? '';
+    $token       = $_GET['hub_verify_token'] ?? '';
+    $challenge   = $_GET['hub_challenge']    ?? '';
 
-}
-
-if ($_SERVER['REQUEST_METHOD'] == 'GET') {
-
-    if (
-        $_GET['hub_mode'] == 'subscribe' &&
-        $_GET['hub_verify_token'] == $config['verify_token']
-    ) {
-
-        echo $_GET['hub_challenge'];
-
+    if ($mode === 'subscribe' && $token === $config['verify_token']) {
+        http_response_code(200);
+        echo $challenge;
         exit;
     }
 
     http_response_code(403);
-
     exit;
 }
 
-$payload = file_get_contents("php://input");
+// ─────────────────────────────────────────────
+// 2. INCOMING EVENTS (POST — Meta delivers events)
+// ─────────────────────────────────────────────
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
-file_put_contents(
+    // Read the raw request body
+    $payload = file_get_contents('php://input');
 
-    "storage/logs/webhook.log",
+    // Log the raw payload for auditing / debugging
+    logWebhook($payload);
 
-    $payload . PHP_EOL,
+    // Parse the payload into a normalised internal format
+    $message = parseWebhook($payload);
 
-    FILE_APPEND
+    if ($message) {
+        // TODO: handle the incoming message
+        // e.g. save to DB, trigger auto-reply, etc.
+        logWebhook('Parsed message from ' . $message['from'] . ': ' . $message['body']);
+    }
 
-);
+    // Meta requires HTTP 200 + exactly this text; anything else triggers retries
+    http_response_code(200);
+    echo 'EVENT_RECEIVED';
+    exit;
+}
 
-echo "EVENT_RECEIVED";
+// Any other HTTP method → reject
+http_response_code(405);
+exit;

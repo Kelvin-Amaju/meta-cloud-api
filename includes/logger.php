@@ -4,7 +4,7 @@
 
 define(
     'LOG_PATH',
-    '../storage/logs/'
+    __DIR__ . '/../storage/logs/'
 );
 
 function writeLog($file, $message)
