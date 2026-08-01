@@ -9,8 +9,10 @@ loadEnv(__DIR__ . '/../.env');
 return [
 
     // ── Meta / WhatsApp Cloud API ──────────────────────────────
-    'api_version'   => env('META_API_VERSION', 'v25.0'),
-    'verify_token'  => env('META_VERIFY_TOKEN', ''),
+    'api_version'     => env('META_API_VERSION', 'v25.0'),
+    'verify_token'    => env('META_VERIFY_TOKEN', ''),
+    'access_token'    => env('META_ACCESS_TOKEN', ''),   // Permanent System User token (Pine Agency's own)
+    'phone_number_id' => env('META_PHONE_NUMBER_ID', ''),
 
     // ── Database ───────────────────────────────────────────────
     'db_host'         => env('DB_HOST', 'localhost'),

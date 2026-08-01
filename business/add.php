@@ -4,21 +4,46 @@
 
 require_once __DIR__ . '/../includes/init.php';
 
+global $config;
+
+// Permanent System User token — Pine Agency's own, shared across every
+// tenant WABA it has been granted "Manage WhatsApp Business accounts" on.
+// Never sourced from user input for this token type.
+$systemUserToken = $config['access_token'] ?? '';
+
 $alert = null;
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $result = createBusiness($_POST);
 
-    if (!empty($result['success'])) {
-        $newId = $result['id'];
-        header("Location: index?created=1");
-        exit;
-    } else {
+    // When the admin selects "System User Token (Permanent)", ignore
+    // whatever is in the access_token field and use the .env value instead.
+    $isSystemUser = ($_POST['token_type'] ?? 'system_user') === 'system_user';
+
+    if ($isSystemUser && empty($systemUserToken)) {
         $alert = [
             'type'    => 'danger',
-            'title'   => 'Creation Failed',
-            'message' => htmlspecialchars($result['error'] ?? 'An error occurred while creating the business account.')
+            'title'   => 'Missing System User Token',
+            'message' => 'META_ACCESS_TOKEN is not set in .env. Add your permanent System User token there, or switch Token Type to Temporary and paste one manually.'
         ];
+    } else {
+
+        if ($isSystemUser) {
+            $_POST['access_token'] = $systemUserToken;
+        }
+
+        $result = createBusiness($_POST);
+
+        if (!empty($result['success'])) {
+            $newId = $result['id'];
+            header("Location: index?created=1");
+            exit;
+        } else {
+            $alert = [
+                'type'    => 'danger',
+                'title'   => 'Creation Failed',
+                'message' => htmlspecialchars($result['error'] ?? 'An error occurred while creating the business account.')
+            ];
+        }
     }
 }
 ?>
@@ -37,7 +62,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <body class="bg-light min-vh-100 d-flex flex-column py-4">
 
     <!-- Top Navbar -->
-    <nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4 shadow-sm py-3">
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark top-0 mb-4 shadow-sm py-3">
         <div class="container-fluid container-xl">
             <a class="navbar-brand d-flex align-items-center gap-2" href="../index">
                 <i class="bi bi-whatsapp text-success fs-4"></i>
@@ -217,7 +242,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             </select>
                         </div>
 
-                        <!-- Access Token -->
+                        <?php if (false): // ORIGINAL MANUAL-ENTRY-ONLY ACCESS TOKEN FIELD — kept as fallback.
+                        // Restore this block (and remove the version below) if System User
+                        // tokens ever need to go back to manual paste-in instead of .env.
+                        // Wrapped in `if (false)` rather than an HTML comment, since HTML
+                        // comments don't stop the embedded <?= ?> tags below from executing. ?>
                         <div class="col-md-8">
                             <label for="access_token" class="form-label fw-semibold">Access Token <span class="text-danger">*</span></label>
                             <div class="input-group">
@@ -235,6 +264,41 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 </button>
                             </div>
                             <div class="form-text">Paste your Meta WhatsApp System User Access Token.</div>
+                        </div>
+                        <?php endif; ?>
+
+                        <!-- Access Token — auto-filled from .env (META_ACCESS_TOKEN) when
+                             Token Type = System User; editable manually when Temporary. -->
+                        <div class="col-md-8">
+                            <label for="access_token" class="form-label fw-semibold">Access Token <span class="text-danger">*</span></label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light text-muted"><i class="bi bi-shield-lock-fill"></i></span>
+                                <input
+                                    type="password"
+                                    class="form-control"
+                                    id="access_token"
+                                    name="access_token"
+                                    placeholder="EAAG..."
+                                    value="<?= htmlspecialchars(
+                                        (($_POST['token_type'] ?? 'system_user') === 'system_user')
+                                            ? $systemUserToken
+                                            : ($_POST['access_token'] ?? '')
+                                    ) ?>"
+                                    <?= (($_POST['token_type'] ?? 'system_user') === 'system_user') ? 'readonly' : '' ?>
+                                    required>
+                                <button class="btn btn-outline-secondary" type="button" id="toggleToken">
+                                    <i class="bi bi-eye-fill"></i>
+                                </button>
+                            </div>
+                            <div class="form-text" id="tokenHelpText">
+                                <?php if (!empty($systemUserToken)): ?>
+                                    <i class="bi bi-check-circle-fill text-success"></i>
+                                    Access Token Found
+                                <?php else: ?>
+                                    <i class="bi bi-exclamation-triangle-fill text-warning"></i>
+                                    <code>META_ACCESS_TOKEN</code> is not set in <code>.env</code>. Set it there, or switch Token Type to Temporary to paste one manually.
+                                <?php endif; ?>
+                            </div>
                         </div>
                     </div>
 
@@ -272,6 +336,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             } else {
                 tokenInput.type = 'password';
                 icon.classList.replace('bi-eye-slash-fill', 'bi-eye-fill');
+            }
+        });
+
+        // System User token pulled from .env (server-rendered, not exposed via JS
+        // source beyond what the readonly field already shows on page load).
+        const SYSTEM_USER_TOKEN = <?= json_encode($systemUserToken) ?>;
+
+        const tokenTypeSelect = document.getElementById('token_type');
+        const accessTokenInput = document.getElementById('access_token');
+        const tokenHelpText = document.getElementById('tokenHelpText');
+
+        tokenTypeSelect.addEventListener('change', function() {
+            if (this.value === 'system_user') {
+                accessTokenInput.value = SYSTEM_USER_TOKEN;
+                accessTokenInput.setAttribute('readonly', 'readonly');
+                tokenHelpText.innerHTML = SYSTEM_USER_TOKEN
+                    ? '<i class="bi bi-check-circle-fill text-success"></i> Pulled automatically from <code>.env</code> (<code>META_ACCESS_TOKEN</code>) — no need to paste it here.'
+                    : '<i class="bi bi-exclamation-triangle-fill text-warning"></i> <code>META_ACCESS_TOKEN</code> is not set in <code>.env</code>. Set it there, or switch Token Type to Temporary to paste one manually.';
+            } else {
+                accessTokenInput.value = '';
+                accessTokenInput.removeAttribute('readonly');
+                tokenHelpText.innerHTML = '<i class="bi bi-info-circle-fill text-muted"></i> Paste the temporary token generated from the Meta App Dashboard (expires in 24 hours).';
             }
         });
     </script>
