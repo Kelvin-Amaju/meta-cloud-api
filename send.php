@@ -80,7 +80,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $wamid = $response['data']['messages'][0]['id'] ?? ('wamid.simulated_' . time());
 
                 // Templates open a fresh 24h session — always logged as two-way
-                saveOutgoingMessage($cleanPhone, $previewText, $wamid, 1, $selectedBusiness['id'], 'sent', null);
+                saveOutgoingMessage($cleanPhone, $previewText, $wamid, 1, $selectedBusiness['id'], 'sent', null, 'template');
 
                 $messageText = "Template <strong>{$template['name']}</strong> sent to <strong>+{$cleanPhone}</strong> via <strong>"
                     . htmlspecialchars($selectedBusiness['name']) . "</strong> (" . ucfirst($selectedBusiness['product_line']) . ").";
@@ -103,7 +103,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     ?? $response['data']['error']['code']
                     ?? 'Error';
 
-                saveOutgoingMessage($cleanPhone, $previewText, 'wamid.failed_' . time(), 1, $selectedBusiness['id'], 'failed', $errorMessage);
+                saveOutgoingMessage($cleanPhone, $previewText, 'wamid.failed_' . time(), 1, $selectedBusiness['id'], 'failed', $errorMessage, 'template');
 
                 $alert = [
                     'type'    => 'danger',
@@ -111,6 +111,256 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     'message' => htmlspecialchars($errorMessage) . "<br><small class='text-muted'>Sender Business: <strong>" . htmlspecialchars($selectedBusiness['name']) . "</strong></small>",
                     'raw'     => $response
                 ];
+            }
+        }
+
+    } elseif ($sendMode === 'media') {
+
+        // ── Media send (image / video / audio / document) ───────
+        $mediaType = trim($_POST['media_type'] ?? 'image');
+        $mediaUrl  = trim($_POST['media_url'] ?? '');
+        $caption   = trim($_POST['media_caption'] ?? '');
+
+        $allowedMediaTypes = ['image', 'video', 'audio', 'document'];
+
+        if (empty($mediaUrl)) {
+            $alert = [
+                'type'    => 'danger',
+                'title'   => 'Validation Error',
+                'message' => 'Please provide a public media URL.'
+            ];
+        } elseif (!in_array($mediaType, $allowedMediaTypes, true)) {
+            $alert = [
+                'type'    => 'danger',
+                'title'   => 'Validation Error',
+                'message' => 'Invalid media type selected.'
+            ];
+        } else {
+
+            $response = sendMediaMessage($cleanPhone, $mediaType, $mediaUrl, $caption !== '' ? $caption : null, $selectedBusiness);
+
+            $previewText = "[{$mediaType}: {$mediaUrl}]" . ($caption !== '' ? "\n" . $caption : '');
+
+            if (!empty($response['success'])) {
+
+                $wamid = $response['data']['messages'][0]['id'] ?? ('wamid.simulated_' . time());
+
+                saveOutgoingMessage($cleanPhone, $previewText, $wamid, 1, $selectedBusiness['id'], 'sent', null, $mediaType, $mediaUrl, $mediaType);
+
+                $messageText = ucfirst($mediaType) . " <strong>" . htmlspecialchars($mediaUrl) . "</strong> sent to <strong>+{$cleanPhone}</strong> via <strong>"
+                    . htmlspecialchars($selectedBusiness['name']) . "</strong> (" . ucfirst($selectedBusiness['product_line']) . ").";
+                if ($caption !== '') {
+                    $messageText .= "<br><small class='text-muted'>Caption: " . htmlspecialchars($caption) . "</small>";
+                }
+                $messageText .= "<br><small class='font-monospace text-muted mt-1 d-block'>Message ID: {$wamid}</small>";
+
+                $alert = [
+                    'type'    => 'success',
+                    'title'   => 'Media Message Sent!',
+                    'message' => $messageText,
+                    'raw'     => $response
+                ];
+
+            } else {
+
+                $errorMessage = $response['error']
+                    ?? $response['data']['error']['message']
+                    ?? 'An error occurred while communicating with Meta Graph API.';
+
+                $errorCode = $response['status']
+                    ?? $response['data']['error']['code']
+                    ?? 'Error';
+
+                saveOutgoingMessage($cleanPhone, $previewText, 'wamid.failed_' . time(), 1, $selectedBusiness['id'], 'failed', $errorMessage, $mediaType, $mediaUrl, $mediaType);
+
+                $alert = [
+                    'type'    => 'danger',
+                    'title'   => "API Error (Code {$errorCode})",
+                    'message' => htmlspecialchars($errorMessage) . "<br><small class='text-muted'>Sender Business: <strong>" . htmlspecialchars($selectedBusiness['name']) . "</strong></small>",
+                    'raw'     => $response
+                ];
+            }
+        }
+
+    } elseif ($sendMode === 'interactive') {
+
+        // ── Interactive send (buttons / list) ───────────────────
+        $interactiveType = trim($_POST['interactive_type'] ?? 'button');
+
+        if ($interactiveType === 'list') {
+
+            $headerText = trim($_POST['list_header'] ?? '');
+            $bodyText   = trim($_POST['list_body'] ?? '');
+            $footerText = trim($_POST['list_footer'] ?? '');
+            $buttonText = trim($_POST['list_button'] ?? '');
+            $buttonText = $buttonText !== '' ? $buttonText : 'Options';
+
+            $sections = [];
+            $sectionTitles    = $_POST['section_title'] ?? [];
+            $sectionRowIds    = $_POST['section_row_id'] ?? [];
+            $sectionRowTitles = $_POST['section_row_title'] ?? [];
+
+            foreach ($sectionTitles as $idx => $title) {
+                if (trim((string)$title) === '') {
+                    continue;
+                }
+                $rows = [];
+                $rowIds    = $sectionRowIds[$idx] ?? [];
+                $rowTitles = $sectionRowTitles[$idx] ?? [];
+                foreach ($rowIds as $ridx => $rowId) {
+                    $rowTitle = $rowTitles[$ridx] ?? '';
+                    if (trim((string)$rowId) !== '' && trim((string)$rowTitle) !== '') {
+                        $rows[] = [
+                            'id'    => trim((string)$rowId),
+                            'title' => trim((string)$rowTitle),
+                        ];
+                    }
+                }
+                $sections[] = [
+                    'title' => trim((string)$title),
+                    'rows'  => $rows,
+                ];
+            }
+
+            if (empty($bodyText)) {
+                $alert = [
+                    'type'    => 'danger',
+                    'title'   => 'Validation Error',
+                    'message' => 'Please provide a body message for the list.'
+                ];
+            } else {
+
+                $response = sendInteractiveListMessage($cleanPhone, $headerText, $bodyText, $footerText, $buttonText, $sections, $selectedBusiness);
+
+                $interactivePayload = [
+                    'type'    => 'list',
+                    'header'  => $headerText,
+                    'body'    => $bodyText,
+                    'footer'  => $footerText,
+                    'button'  => $buttonText,
+                    'sections'=> $sections,
+                ];
+
+                $previewText = '[Interactive List] ' . $bodyText;
+
+                if (!empty($response['success'])) {
+
+                    $wamid = $response['data']['messages'][0]['id'] ?? ('wamid.simulated_' . time());
+
+                    saveOutgoingMessage($cleanPhone, $previewText, $wamid, 1, $selectedBusiness['id'], 'sent', null, 'interactive', null, null, $interactivePayload);
+
+                    $messageText = "Interactive list sent to <strong>+{$cleanPhone}</strong> via <strong>"
+                        . htmlspecialchars($selectedBusiness['name']) . "</strong> (" . ucfirst($selectedBusiness['product_line']) . ").";
+                    $messageText .= "<br><small class='text-muted'>Sections: " . count($sections) . " &bull; Rows: " . array_sum(array_map('count', array_column($sections, 'rows'))) . "</small>";
+                    $messageText .= "<br><small class='font-monospace text-muted mt-1 d-block'>Message ID: {$wamid}</small>";
+
+                    $alert = [
+                        'type'    => 'success',
+                        'title'   => 'Interactive List Sent!',
+                        'message' => $messageText,
+                        'raw'     => $response
+                    ];
+
+                } else {
+
+                    $errorMessage = $response['error']
+                        ?? $response['data']['error']['message']
+                        ?? 'An error occurred while communicating with Meta Graph API.';
+
+                    $errorCode = $response['status']
+                        ?? $response['data']['error']['code']
+                        ?? 'Error';
+
+                    saveOutgoingMessage($cleanPhone, $previewText, 'wamid.failed_' . time(), 1, $selectedBusiness['id'], 'failed', $errorMessage, 'interactive', null, null, $interactivePayload);
+
+                    $alert = [
+                        'type'    => 'danger',
+                        'title'   => "API Error (Code {$errorCode})",
+                        'message' => htmlspecialchars($errorMessage) . "<br><small class='text-muted'>Sender Business: <strong>" . htmlspecialchars($selectedBusiness['name']) . "</strong></small>",
+                        'raw'     => $response
+                    ];
+                }
+            }
+
+        } else {
+
+            // ── Interactive buttons ──
+            $bodyText = trim($_POST['button_body'] ?? '');
+
+            $buttonLabels = [];
+            foreach (($_POST['button_label'] ?? []) as $label) {
+                $label = trim((string)$label);
+                if ($label !== '') {
+                    $buttonLabels[] = $label;
+                }
+            }
+            $buttonLabels = array_slice($buttonLabels, 0, 3);
+
+            $buttons = [];
+            foreach ($buttonLabels as $i => $label) {
+                $buttons[] = [
+                    'type'  => 'reply',
+                    'reply' => [
+                        'id'    => 'btn_' . ($i + 1),
+                        'title' => $label,
+                    ],
+                ];
+            }
+
+            if (empty($bodyText) || empty($buttons)) {
+                $alert = [
+                    'type'    => 'danger',
+                    'title'   => 'Validation Error',
+                    'message' => 'Please provide a body message and at least one button label.'
+                ];
+            } else {
+
+                $response = sendInteractiveButtonsMessage($cleanPhone, $bodyText, $buttons, $selectedBusiness);
+
+                $interactivePayload = [
+                    'type'    => 'button',
+                    'body'    => $bodyText,
+                    'buttons' => $buttons,
+                ];
+
+                $previewText = '[Interactive Buttons] ' . $bodyText;
+
+                if (!empty($response['success'])) {
+
+                    $wamid = $response['data']['messages'][0]['id'] ?? ('wamid.simulated_' . time());
+
+                    saveOutgoingMessage($cleanPhone, $previewText, $wamid, 1, $selectedBusiness['id'], 'sent', null, 'interactive', null, null, $interactivePayload);
+
+                    $messageText = "Interactive buttons (" . count($buttons) . ") sent to <strong>+{$cleanPhone}</strong> via <strong>"
+                        . htmlspecialchars($selectedBusiness['name']) . "</strong> (" . ucfirst($selectedBusiness['product_line']) . ").";
+                    $messageText .= "<br><small class='font-monospace text-muted mt-1 d-block'>Message ID: {$wamid}</small>";
+
+                    $alert = [
+                        'type'    => 'success',
+                        'title'   => 'Interactive Message Sent!',
+                        'message' => $messageText,
+                        'raw'     => $response
+                    ];
+
+                } else {
+
+                    $errorMessage = $response['error']
+                        ?? $response['data']['error']['message']
+                        ?? 'An error occurred while communicating with Meta Graph API.';
+
+                    $errorCode = $response['status']
+                        ?? $response['data']['error']['code']
+                        ?? 'Error';
+
+                    saveOutgoingMessage($cleanPhone, $previewText, 'wamid.failed_' . time(), 1, $selectedBusiness['id'], 'failed', $errorMessage, 'interactive', null, null, $interactivePayload);
+
+                    $alert = [
+                        'type'    => 'danger',
+                        'title'   => "API Error (Code {$errorCode})",
+                        'message' => htmlspecialchars($errorMessage) . "<br><small class='text-muted'>Sender Business: <strong>" . htmlspecialchars($selectedBusiness['name']) . "</strong></small>",
+                        'raw'     => $response
+                    ];
+                }
             }
         }
 
@@ -209,6 +459,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         .business-card .form-check-input:checked {
             background-color: #198754;
             border-color: #198754;
+        }
+
+        .media-card {
+            cursor: pointer;
+            border: 2px solid #e9ecef;
+            transition: all 0.2s ease-in-out;
+        }
+
+        .media-card:hover {
+            border-color: #0d6efd;
+            box-shadow: 0 4px 12px rgba(13, 110, 253, 0.08);
+        }
+
+        .media-card.active-sender {
+            border-color: #198754;
+            background-color: #f8fff9;
+            box-shadow: 0 4px 14px rgba(25, 135, 84, 0.12);
         }
 
         .badge-hotel { background-color: #ffc107; color: #000; }
@@ -424,6 +691,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                     <label class="btn btn-outline-success px-4" for="mode_template">
                                         <i class="bi bi-layout-text-window me-1"></i> Template
                                     </label>
+
+                                    <input type="radio" class="btn-check" name="send_mode" id="mode_media" value="media"
+                                        <?= $sendMode === 'media' ? 'checked' : '' ?>>
+                                    <label class="btn btn-outline-success px-4" for="mode_media">
+                                        <i class="bi bi-image me-1"></i> Media
+                                    </label>
+
+                                    <input type="radio" class="btn-check" name="send_mode" id="mode_interactive" value="interactive"
+                                        <?= $sendMode === 'interactive' ? 'checked' : '' ?>>
+                                    <label class="btn btn-outline-success px-4" for="mode_interactive">
+                                        <i class="bi bi-ui-radios me-1"></i> Interactive
+                                    </label>
                                 </div>
                                 <div class="form-text text-muted mt-1">
                                     <i class="bi bi-clock-history me-1"></i>
@@ -506,7 +785,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                     <input type="hidden" name="template_language" id="templateLanguage" value="en_US">
                                     <div class="form-text text-muted mt-1">
                                         <i class="bi bi-info-circle me-1"></i>
-                                        Showing mock templates — swap in your real approved templates in <code>includes/templates.php</code> once available.
+                                        Approved templates loaded from the <code>message_templates</code> table for the selected business.
                                     </div>
                                 </div>
 
@@ -515,6 +794,163 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 <div class="mb-3">
                                     <label class="form-label small fw-semibold text-muted">Preview</label>
                                     <div class="template-preview" id="templatePreview">Select a template to see its preview.</div>
+                                </div>
+
+                            </div>
+
+                            <!-- Media Panel -->
+                            <div id="mediaPanel" class="d-none">
+
+                                <div class="mb-4">
+                                    <label class="form-label fw-semibold text-dark">
+                                        Media Type <span class="text-danger">*</span>
+                                    </label>
+                                    <div class="row g-2">
+                                        <?php
+                                        $mediaOptions = [
+                                            'image'    => ['bi-image', 'Image'],
+                                            'document' => ['bi-file-earmark-text', 'Document'],
+                                            'audio'    => ['bi-file-earmark-music', 'Audio'],
+                                            'video'    => ['bi-file-earmark-play', 'Video'],
+                                        ];
+                                        ?>
+                                        <?php foreach ($mediaOptions as $mType => $mInfo): ?>
+                                            <div class="col-6 col-md-3">
+                                                <label class="card media-card p-2 rounded-3 text-center <?= ($_POST['media_type'] ?? 'image') === $mType ? 'active-sender' : '' ?>">
+                                                    <input
+                                                        class="form-check-input media-type-radio d-none"
+                                                        type="radio"
+                                                        name="media_type"
+                                                        value="<?= $mType ?>"
+                                                        <?= ($_POST['media_type'] ?? 'image') === $mType ? 'checked' : '' ?>>
+                                                    <i class="bi <?= $mInfo[0] ?> fs-3 d-block mb-1"></i>
+                                                    <span class="small"><?= $mInfo[1] ?></span>
+                                                </label>
+                                            </div>
+                                        <?php endforeach; ?>
+                                    </div>
+                                </div>
+
+                                <div class="mb-4">
+                                    <label class="form-label fw-semibold text-dark">
+                                        Media URL <span class="text-danger">*</span>
+                                    </label>
+                                    <div class="input-group input-group-lg">
+                                        <span class="input-group-text bg-white border-end-0 text-secondary">
+                                            <i class="bi bi-link-45deg"></i>
+                                        </span>
+                                        <input
+                                            type="url"
+                                            name="media_url"
+                                            id="mediaUrlField"
+                                            class="form-control border-start-0 ps-0"
+                                            placeholder="https://example.com/file.jpg"
+                                            value="<?= htmlspecialchars($_POST['media_url'] ?? '') ?>">
+                                    </div>
+                                    <div class="form-text text-muted mt-1">
+                                        <i class="bi bi-globe me-1"></i> Must be a publicly reachable HTTPS URL. For documents, include the file extension (e.g. <code>.pdf</code>).
+                                    </div>
+                                </div>
+
+                                <div class="mb-4">
+                                    <label class="form-label fw-semibold text-dark">
+                                        Caption
+                                    </label>
+                                    <textarea
+                                        class="form-control"
+                                        name="media_caption"
+                                        rows="3"
+                                        placeholder="Optional caption text shown with the media..."><?= htmlspecialchars($_POST['media_caption'] ?? '') ?></textarea>
+                                </div>
+
+                            </div>
+
+                            <!-- Interactive Panel -->
+                            <div id="interactivePanel" class="d-none">
+
+                                <div class="mb-4">
+                                    <label class="form-label fw-semibold text-dark d-block">Interactive Type</label>
+                                    <div class="btn-group mode-toggle" role="group">
+                                        <input type="radio" class="btn-check" name="interactive_type" id="int_type_button" value="button"
+                                            <?= ($_POST['interactive_type'] ?? 'button') === 'button' ? 'checked' : '' ?>>
+                                        <label class="btn btn-outline-success px-4" for="int_type_button">
+                                            <i class="bi bi-toggles me-1"></i> Buttons
+                                        </label>
+
+                                        <input type="radio" class="btn-check" name="interactive_type" id="int_type_list" value="list"
+                                            <?= ($_POST['interactive_type'] ?? '') === 'list' ? 'checked' : '' ?>>
+                                        <label class="btn btn-outline-success px-4" for="int_type_list">
+                                            <i class="bi bi-list-ul me-1"></i> List
+                                        </label>
+                                    </div>
+                                </div>
+
+                                <!-- Interactive Buttons -->
+                                <div id="interactiveButtonsPanel" class="d-none">
+                                    <div class="mb-4">
+                                        <label class="form-label fw-semibold text-dark">
+                                            Body Message <span class="text-danger">*</span>
+                                        </label>
+                                        <textarea
+                                            class="form-control"
+                                            name="button_body"
+                                            id="buttonBodyField"
+                                            rows="3"
+                                            placeholder="Prompt text above the buttons..."><?= htmlspecialchars($_POST['button_body'] ?? '') ?></textarea>
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <label class="form-label fw-semibold text-dark d-flex justify-content-between align-items-center">
+                                            <span>Buttons</span>
+                                            <button type="button" class="btn btn-sm btn-outline-primary" id="addButtonBtn">
+                                                <i class="bi bi-plus-lg me-1"></i> Add Button
+                                            </button>
+                                        </label>
+                                        <div id="buttonRows" class="mb-2"></div>
+                                        <div class="form-text text-muted">
+                                            <i class="bi bi-info-circle me-1"></i> Up to 3 buttons, each title limited to 25 characters.
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Interactive List -->
+                                <div id="interactiveListPanel" class="d-none">
+                                    <div class="row g-3">
+                                        <div class="col-md-6">
+                                            <label class="form-label fw-semibold text-dark">Header</label>
+                                            <input type="text" name="list_header" class="form-control" maxlength="60"
+                                                placeholder="Optional header text" value="<?= htmlspecialchars($_POST['list_header'] ?? '') ?>">
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label fw-semibold text-dark">List Button Text</label>
+                                            <input type="text" name="list_button" class="form-control" maxlength="20"
+                                                placeholder="Options" value="<?= htmlspecialchars($_POST['list_button'] ?? '') ?>">
+                                        </div>
+                                        <div class="col-12">
+                                            <label class="form-label fw-semibold text-dark">
+                                                Body Message <span class="text-danger">*</span>
+                                            </label>
+                                            <textarea class="form-control" name="list_body" id="listBodyField" rows="3"
+                                                placeholder="Prompt text above the menu..."><?= htmlspecialchars($_POST['list_body'] ?? '') ?></textarea>
+                                        </div>
+                                        <div class="col-12">
+                                            <label class="form-label fw-semibold text-dark">Footer</label>
+                                            <input type="text" name="list_footer" class="form-control" maxlength="60"
+                                                placeholder="Optional footer text" value="<?= htmlspecialchars($_POST['list_footer'] ?? '') ?>">
+                                        </div>
+                                        <div class="col-12">
+                                            <label class="form-label fw-semibold text-dark d-flex justify-content-between align-items-center">
+                                                <span>Sections</span>
+                                                <button type="button" class="btn btn-sm btn-outline-primary" id="addSectionBtn">
+                                                    <i class="bi bi-plus-lg me-1"></i> Add Section
+                                                </button>
+                                            </label>
+                                            <div id="listSections"></div>
+                                            <div class="form-text text-muted">
+                                                <i class="bi bi-info-circle me-1"></i> Each section needs a title and at least one row (ID + title).
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
 
                             </div>
@@ -554,21 +990,37 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <script>
         // Per-business template lists, injected from PHP (mock for now)
         const templatesByBusiness = <?= json_encode($templatesByBusiness) ?>;
+        const seededButtons = <?= json_encode($_POST['button_label'] ?? []) ?>;
+        const seededSectionTitles = <?= json_encode($_POST['section_title'] ?? []) ?>;
+        const seededSectionRowIds = <?= json_encode($_POST['section_row_id'] ?? []) ?>;
+        const seededSectionRowTitles = <?= json_encode($_POST['section_row_title'] ?? []) ?>;
 
         document.addEventListener('DOMContentLoaded', function () {
             const radios = document.querySelectorAll('.business-radio');
             const cards = document.querySelectorAll('.business-card');
             const activeCompanyName = document.getElementById('activeCompanyName');
 
-            const modeFreeform = document.getElementById('mode_freeform');
-            const modeTemplate = document.getElementById('mode_template');
             const freeformPanel = document.getElementById('freeformPanel');
             const templatePanel = document.getElementById('templatePanel');
+            const mediaPanel = document.getElementById('mediaPanel');
+            const interactivePanel = document.getElementById('interactivePanel');
+            const interactiveButtonsPanel = document.getElementById('interactiveButtonsPanel');
+            const interactiveListPanel = document.getElementById('interactiveListPanel');
             const messageField = document.getElementById('messageField');
             const templateSelect = document.getElementById('templateSelect');
             const templateVariables = document.getElementById('templateVariables');
             const templatePreview = document.getElementById('templatePreview');
             const templateLanguage = document.getElementById('templateLanguage');
+            const mediaUrlField = document.getElementById('mediaUrlField');
+            const buttonBodyField = document.getElementById('buttonBodyField');
+            const listBodyField = document.getElementById('listBodyField');
+            const buttonRows = document.getElementById('buttonRows');
+            const listSections = document.getElementById('listSections');
+            const addButtonBtn = document.getElementById('addButtonBtn');
+            const addSectionBtn = document.getElementById('addSectionBtn');
+
+            let sectionIndex = 0;
+            let buttonCount = 0;
 
             function getSelectedBusinessId() {
                 const checked = document.querySelector('.business-radio:checked');
@@ -637,14 +1089,144 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
 
             function applyMode() {
-                const isTemplate = modeTemplate.checked;
+                const mode = document.querySelector('input[name="send_mode"]:checked').value;
 
-                freeformPanel.classList.toggle('d-none', isTemplate);
-                templatePanel.classList.toggle('d-none', !isTemplate);
+                freeformPanel.classList.toggle('d-none', mode !== 'freeform');
+                templatePanel.classList.toggle('d-none', mode !== 'template');
+                mediaPanel.classList.toggle('d-none', mode !== 'media');
+                interactivePanel.classList.toggle('d-none', mode !== 'interactive');
 
                 // Only require fields belonging to the active mode
-                messageField.required = !isTemplate;
-                templateSelect.required = isTemplate;
+                messageField.required = mode === 'freeform';
+                templateSelect.required = mode === 'template';
+                mediaUrlField.required = mode === 'media';
+
+                if (mode === 'interactive') {
+                    applyInteractiveType();
+                }
+            }
+
+            function applyInteractiveType() {
+                const type = document.querySelector('input[name="interactive_type"]:checked').value;
+
+                interactiveButtonsPanel.classList.toggle('d-none', type !== 'button');
+                interactiveListPanel.classList.toggle('d-none', type !== 'list');
+
+                buttonBodyField.required = type === 'button';
+                listBodyField.required = type === 'list';
+            }
+
+            function addButtonRow(label) {
+                if (buttonCount >= 3) return;
+                buttonCount++;
+
+                const wrap = document.createElement('div');
+                wrap.className = 'input-group mb-2';
+
+                const span = document.createElement('span');
+                span.className = 'input-group-text';
+                span.textContent = 'Button ' + buttonCount;
+
+                const input = document.createElement('input');
+                input.type = 'text';
+                input.name = 'button_label[]';
+                input.className = 'form-control';
+                input.maxLength = 25;
+                input.placeholder = 'Button label';
+                input.value = label || '';
+
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = 'btn btn-outline-danger remove-btn';
+                btn.title = 'Remove button';
+                btn.innerHTML = '<i class="bi bi-x-lg"></i>';
+                btn.addEventListener('click', () => { wrap.remove(); buttonCount--; });
+
+                wrap.append(span, input, btn);
+                buttonRows.appendChild(wrap);
+            }
+
+            function addListSection(title, rows) {
+                sectionIndex++;
+                const idx = sectionIndex;
+
+                const wrap = document.createElement('div');
+                wrap.className = 'card bg-light border-0 p-3 mb-2 list-section';
+
+                const head = document.createElement('div');
+                head.className = 'd-flex justify-content-between align-items-center mb-2';
+
+                const headLabel = document.createElement('label');
+                headLabel.className = 'form-label small fw-semibold mb-0';
+                headLabel.textContent = 'Section Title';
+
+                const removeBtn = document.createElement('button');
+                removeBtn.type = 'button';
+                removeBtn.className = 'btn btn-sm btn-outline-danger remove-section';
+                removeBtn.title = 'Remove section';
+                removeBtn.innerHTML = '<i class="bi bi-x-lg"></i>';
+                removeBtn.addEventListener('click', () => wrap.remove());
+
+                head.append(headLabel, removeBtn);
+
+                const titleInput = document.createElement('input');
+                titleInput.type = 'text';
+                titleInput.name = 'section_title[' + idx + ']';
+                titleInput.className = 'form-control form-control-sm mb-2';
+                titleInput.placeholder = 'Section title';
+                titleInput.value = title || '';
+
+                const rowsContainer = document.createElement('div');
+                rowsContainer.className = 'list-rows';
+
+                const addRowBtn = document.createElement('button');
+                addRowBtn.type = 'button';
+                addRowBtn.className = 'btn btn-sm btn-outline-primary add-row';
+                addRowBtn.innerHTML = '<i class="bi bi-plus-lg me-1"></i> Add Row';
+                addRowBtn.addEventListener('click', () => addListRow(rowsContainer, idx));
+
+                wrap.append(head, titleInput, rowsContainer, addRowBtn);
+                listSections.appendChild(wrap);
+
+                (rows || []).forEach(r => addListRow(rowsContainer, idx, r.id, r.title));
+            }
+
+            function addListRow(container, sectionIdx, rowId, rowTitle) {
+                const row = document.createElement('div');
+                row.className = 'row g-2 mb-2 list-row';
+
+                const colId = document.createElement('div');
+                colId.className = 'col-4';
+                const idInput = document.createElement('input');
+                idInput.type = 'text';
+                idInput.name = 'section_row_id[' + sectionIdx + '][]';
+                idInput.className = 'form-control form-control-sm';
+                idInput.placeholder = 'Row ID';
+                idInput.value = rowId || '';
+                colId.appendChild(idInput);
+
+                const colTitle = document.createElement('div');
+                colTitle.className = 'col-6';
+                const titleInput = document.createElement('input');
+                titleInput.type = 'text';
+                titleInput.name = 'section_row_title[' + sectionIdx + '][]';
+                titleInput.className = 'form-control form-control-sm';
+                titleInput.placeholder = 'Row title';
+                titleInput.value = rowTitle || '';
+                colTitle.appendChild(titleInput);
+
+                const colBtn = document.createElement('div');
+                colBtn.className = 'col-2';
+                const removeBtn = document.createElement('button');
+                removeBtn.type = 'button';
+                removeBtn.className = 'btn btn-sm btn-outline-danger remove-row';
+                removeBtn.title = 'Remove row';
+                removeBtn.innerHTML = '<i class="bi bi-x-lg"></i>';
+                removeBtn.addEventListener('click', () => row.remove());
+                colBtn.appendChild(removeBtn);
+
+                row.append(colId, colTitle, colBtn);
+                container.appendChild(row);
             }
 
             radios.forEach(radio => {
@@ -661,9 +1243,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 });
             });
 
-            modeFreeform.addEventListener('change', applyMode);
-            modeTemplate.addEventListener('change', applyMode);
+            document.querySelectorAll('.media-type-radio').forEach(radio => {
+                radio.addEventListener('change', function () {
+                    document.querySelectorAll('.media-card').forEach(c => c.classList.remove('active-sender'));
+                    if (this.checked && this.closest('.media-card')) {
+                        this.closest('.media-card').classList.add('active-sender');
+                    }
+                });
+            });
+
+            document.querySelectorAll('input[name="send_mode"]').forEach(r => r.addEventListener('change', applyMode));
+            document.querySelectorAll('input[name="interactive_type"]').forEach(r => r.addEventListener('change', applyInteractiveType));
             templateSelect.addEventListener('change', renderTemplateVariables);
+            addButtonBtn.addEventListener('click', () => addButtonRow(''));
+            addSectionBtn.addEventListener('click', () => addListSection('', []));
+
+            // Seed dynamic builders from the previous (failed) submission
+            seededButtons.forEach(label => addButtonRow(label));
+            Object.keys(seededSectionTitles).forEach(idx => {
+                addListSection(
+                    seededSectionTitles[idx],
+                    (seededSectionRowIds[idx] || []).map((rid, i) => ({ id: rid, title: seededSectionRowTitles[idx]?.[i] || '' }))
+                );
+            });
 
             // Init on load
             populateTemplateSelect();

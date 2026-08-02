@@ -7,14 +7,20 @@ require_once 'includes/messages.php';
 // ---- Read & sanitize filters from query string ----
 $search   = trim($_GET['search'] ?? '');
 $reply    = $_GET['reply'] ?? '';          // '', '1', '0'
+$status   = $_GET['status'] ?? '';         // '', 'queued','sent','delivered','read','failed','received'
 $dateFrom = trim($_GET['date_from'] ?? '');
 $dateTo   = trim($_GET['date_to'] ?? '');
 $page     = max(1, (int)($_GET['page'] ?? 1));
-$perPage  = 20;
+$perPage  = 10;
 
 // Validate reply filter value strictly
 if (!in_array($reply, ['', '0', '1'], true)) {
     $reply = '';
+}
+
+// Validate status filter value strictly
+if (!in_array($status, ['', 'queued', 'sent', 'delivered', 'read', 'failed', 'received'], true)) {
+    $status = '';
 }
 
 // Validate dates strictly (Y-m-d), silently drop if malformed
@@ -33,6 +39,7 @@ if ($dateFrom !== '' && $dateTo !== '' && $dateFrom > $dateTo) {
 $filters = [
     'search'    => $search,
     'reply'     => $reply,
+    'status'    => $status,
     'date_from' => $dateFrom,
     'date_to'   => $dateTo,
 ];
@@ -48,6 +55,26 @@ $queryError = $result['error'];
 // If the requested page is beyond the last page (e.g. filters changed), clamp and note it
 $pageOutOfRange = ($totalPages > 0 && $page > $totalPages);
 
+// Badge styling for message type and status columns
+$messageTypeBadges = [
+    'text'        => 'secondary',
+    'template'    => 'primary',
+    'image'       => 'warning',
+    'video'       => 'warning',
+    'audio'       => 'warning',
+    'document'    => 'warning',
+    'interactive' => 'success',
+];
+
+$statusBadges = [
+    'queued'    => 'secondary',
+    'sent'      => 'info',
+    'delivered' => 'primary',
+    'read'      => 'success',
+    'failed'    => 'danger',
+    'received'  => 'dark',
+];
+
 /**
  * Build a query string for pagination/sort links, preserving current filters
  * and overriding specific params.
@@ -57,6 +84,7 @@ function buildQueryString(array $overrides = []): string
     $params = [
         'search'    => $_GET['search'] ?? '',
         'reply'     => $_GET['reply'] ?? '',
+        'status'    => $_GET['status'] ?? '',
         'date_from' => $_GET['date_from'] ?? '',
         'date_to'   => $_GET['date_to'] ?? '',
         'page'      => $_GET['page'] ?? 1,
@@ -163,12 +191,12 @@ function timeAgo(string $datetime): string
             </h4>
         </div>
 
-        <?php if ($queryError || $stats['error']): ?>
+        <?php if ($queryError): ?>
             <div class="alert alert-danger border-0 shadow-sm">
                 <i class="bi bi-exclamation-octagon-fill me-1"></i>
                 Couldn't load message data right now.
                 <div class="small mt-1 font-monospace">
-                    <?= htmlspecialchars($queryError ?: $stats['error']) ?>
+                    <?= htmlspecialchars($queryError) ?>
                 </div>
             </div>
         <?php endif; ?>
@@ -178,7 +206,7 @@ function timeAgo(string $datetime): string
             <div class="col-6 col-md-3">
                 <div class="card border-0 shadow-sm h-100 stat-card">
                     <div class="card-body">
-                        <div class="text-muted small text-uppercase fw-semibold">Total Sent</div>
+                        <div class="text-muted small text-uppercase fw-semibold">Total</div>
                         <div class="display-6"><?= number_format($stats['total']) ?></div>
                     </div>
                 </div>
@@ -194,16 +222,16 @@ function timeAgo(string $datetime): string
             <div class="col-6 col-md-3">
                 <div class="card border-0 shadow-sm h-100 stat-card">
                     <div class="card-body">
-                        <div class="text-muted small text-uppercase fw-semibold">Two-Way</div>
-                        <div class="display-6 text-success"><?= number_format($stats['twoWay']) ?></div>
+                        <div class="text-muted small text-uppercase fw-semibold">Delivered</div>
+                        <div class="display-6 text-success"><?= number_format($stats['delivered']) ?></div>
                     </div>
                 </div>
             </div>
             <div class="col-6 col-md-3">
                 <div class="card border-0 shadow-sm h-100 stat-card">
                     <div class="card-body">
-                        <div class="text-muted small text-uppercase fw-semibold">One-Way</div>
-                        <div class="display-6 text-warning"><?= number_format($stats['oneWay']) ?></div>
+                        <div class="text-muted small text-uppercase fw-semibold">Read</div>
+                        <div class="display-6 text-warning"><?= number_format($stats['read']) ?></div>
                     </div>
                 </div>
             </div>
@@ -227,12 +255,25 @@ function timeAgo(string $datetime): string
                         </div>
                     </div>
 
-                    <div class="col-6 col-md-2">
+                    <!--<div class="col-6 col-md-2">
                         <label class="form-label small fw-semibold mb-1">Type</label>
                         <select name="reply" class="form-select">
                             <option value="" <?= $reply === '' ? 'selected' : '' ?>>All</option>
                             <option value="1" <?= $reply === '1' ? 'selected' : '' ?>>Two-Way</option>
                             <option value="0" <?= $reply === '0' ? 'selected' : '' ?>>One-Way</option>
+                        </select>
+                    </div>-->
+
+                    <div class="col-6 col-md-2">
+                        <label class="form-label small fw-semibold mb-1">Status</label>
+                        <select name="status" class="form-select">
+                            <option value="" <?= $status === '' ? 'selected' : '' ?>>All</option>
+                            <option value="sent" <?= $status === 'sent' ? 'selected' : '' ?>>Sent</option>
+                            <option value="failed" <?= $status === 'failed' ? 'selected' : '' ?>>Failed</option>
+                            <option value="delivered" <?= $status === 'delivered' ? 'selected' : '' ?>>Delivered</option>
+                            <option value="read" <?= $status === 'read' ? 'selected' : '' ?>>Read</option>
+                            <option value="queued" <?= $status === 'queued' ? 'selected' : '' ?>>Queued</option>
+                            <option value="received" <?= $status === 'received' ? 'selected' : '' ?>>Received</option>
                         </select>
                     </div>
 
@@ -281,7 +322,7 @@ function timeAgo(string $datetime): string
 
                 <div class="card-body text-center py-5 text-muted">
                     <i class="bi bi-inbox display-4 d-block mb-2"></i>
-                    <?php if ($search !== '' || $reply !== '' || $dateFrom !== '' || $dateTo !== ''): ?>
+                    <?php if ($search !== '' || $reply !== '' || $status !== '' || $dateFrom !== '' || $dateTo !== ''): ?>
                         No messages match your filters.
                         <div class="mt-2">
                             <a href="messages" class="btn btn-sm btn-outline-secondary">Clear filters</a>
@@ -301,9 +342,10 @@ function timeAgo(string $datetime): string
                         <thead class="table-light">
                             <tr>
                                 <th>Sender Business</th>
-                                <th>Recipient Phone</th>
+                                <th>Contact</th>
                                 <th>Message</th>
                                 <th>Type</th>
+                                <th>Status</th>
                                 <th>Sent</th>
                                 <th class="text-end pe-3">Wamid</th>
                             </tr>
@@ -316,7 +358,10 @@ function timeAgo(string $datetime): string
                                     data-phone="<?= htmlspecialchars($m['phone']) ?>"
                                     data-message="<?= htmlspecialchars($m['message']) ?>"
                                     data-wamid="<?= htmlspecialchars($m['wamid']) ?>"
-                                    data-allow-reply="<?= (int)$m['allow_reply'] ?>"
+                                    data-type="<?= htmlspecialchars($m['message_type'] ?? 'text') ?>"
+                                    data-status="<?= htmlspecialchars($m['status'] ?? 'sent') ?>"
+                                    data-media-type="<?= htmlspecialchars($m['media_type'] ?? '') ?>"
+                                    data-media-url="<?= htmlspecialchars($m['media_url'] ?? '') ?>"
                                     data-created="<?= htmlspecialchars($m['created_at']) ?>">
                                     <td>
                                         <div class="d-flex flex-column align-items-start gap-1">
@@ -328,16 +373,34 @@ function timeAgo(string $datetime): string
                                             <?php endif; ?>
                                         </div>
                                     </td>
-                                    <td class="fw-semibold">+<?= htmlspecialchars($m['phone']) ?></td>
+                                    <td class="fw-semibold">
+                                        <?php if (($m['direction'] ?? 'outbound') === 'inbound'): ?>
+                                            <i class="bi bi-arrow-down-left text-info me-1" title="Inbound"></i>
+                                        <?php else: ?>
+                                            <i class="bi bi-arrow-up-right text-success me-1" title="Outbound"></i>
+                                        <?php endif; ?>
+                                        +<?= htmlspecialchars($m['phone']) ?>
+                                    </td>
                                     <td class="msg-preview text-muted" title="<?= htmlspecialchars($m['message']) ?>">
                                         <?= htmlspecialchars($m['message']) ?>
                                     </td>
                                     <td>
-                                        <?php if ((int)$m['allow_reply'] === 1): ?>
-                                            <span class="badge bg-success text-white border border-success">Two-Way</span>
-                                        <?php else: ?>
-                                            <span class="badge bg-warning text-white border border-warning">One-Way</span>
-                                        <?php endif; ?>
+                                        <?php
+                                        $mType = $m['message_type'] ?? 'text';
+                                        $mTypeClass = $messageTypeBadges[$mType] ?? 'secondary';
+                                        ?>
+                                        <span class="badge bg-<?= $mTypeClass ?>-subtle text-<?= $mTypeClass ?> border border-<?= $mTypeClass ?>-subtle text-uppercase" style="font-size: 0.7rem;">
+                                            <?= htmlspecialchars($mType) ?>
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <?php
+                                        $mStatus = $m['status'] ?? 'sent';
+                                        $mStatusClass = $statusBadges[$mStatus] ?? 'secondary';
+                                        ?>
+                                        <span class="badge bg-<?= $mStatusClass ?> text-white text-uppercase" style="font-size: 0.7rem;">
+                                            <?= htmlspecialchars($mStatus) ?>
+                                        </span>
                                     </td>
                                     <td class="text-muted small" title="<?= htmlspecialchars($m['created_at']) ?>">
                                         <?= htmlspecialchars(timeAgo($m['created_at'])) ?>
@@ -419,7 +482,7 @@ function timeAgo(string $datetime): string
                 <div class="modal-body">
 
                     <div class="mb-3">
-                        <div class="text-muted small text-uppercase fw-semibold">Recipient</div>
+                        <div class="text-muted small text-uppercase fw-semibold">Contact</div>
                         <div class="fs-5 fw-semibold" id="modalPhone"></div>
                     </div>
 
@@ -434,9 +497,18 @@ function timeAgo(string $datetime): string
                             <div id="modalType"></div>
                         </div>
                         <div class="col-6">
-                            <div class="text-muted small text-uppercase fw-semibold">Sent At</div>
+                            <div class="text-muted small text-uppercase fw-semibold">Status</div>
+                            <div id="modalStatus"></div>
+                        </div>
+                        <div class="col-6">
+                            <div class="text-muted small text-uppercase fw-semibold">Created At</div>
                             <div id="modalCreated" class="small"></div>
                         </div>
+                    </div>
+
+                    <div class="mt-3 d-none" id="modalMediaWrap">
+                        <div class="text-muted small text-uppercase fw-semibold">Media</div>
+                        <a id="modalMediaUrl" href="#" target="_blank" rel="noopener" class="small d-block text-break"></a>
                     </div>
 
                     <div class="mt-3">
@@ -459,10 +531,25 @@ function timeAgo(string $datetime): string
                 document.getElementById('modalWamid').textContent = row.dataset.wamid;
                 document.getElementById('modalCreated').textContent = row.dataset.created;
 
-                var isTwoWay = row.dataset.allowReply === '1';
-                document.getElementById('modalType').innerHTML = isTwoWay
-                    ? '<span class="badge bg-success-subtle text-success border border-success-subtle">Two-Way</span>'
-                    : '<span class="badge bg-warning text-white">One-Way</span>';
+                var type = row.dataset.type || 'text';
+                var typeClass = type === 'interactive' ? 'success'
+                    : (['image', 'video', 'audio', 'document'].indexOf(type) !== -1 ? 'warning'
+                    : (type === 'template' ? 'primary' : 'secondary'));
+                document.getElementById('modalType').innerHTML = '<span class="badge bg-' + typeClass + '-subtle text-' + typeClass + ' border border-' + typeClass + '-subtle text-uppercase">' + type + '</span>';
+
+                var status = row.dataset.status || 'sent';
+                var statusClass = ({ queued: 'secondary', sent: 'info', delivered: 'primary', read: 'success', failed: 'danger', received: 'dark' })[status] || 'secondary';
+                document.getElementById('modalStatus').innerHTML = '<span class="badge bg-' + statusClass + ' text-white text-uppercase">' + status + '</span>';
+
+                var mediaWrap = document.getElementById('modalMediaWrap');
+                var mediaUrl = row.dataset.mediaUrl || '';
+                if (mediaUrl) {
+                    document.getElementById('modalMediaUrl').textContent = (row.dataset.mediaType ? row.dataset.mediaType + ' \u2014 ' : '') + mediaUrl;
+                    document.getElementById('modalMediaUrl').href = mediaUrl;
+                    mediaWrap.classList.remove('d-none');
+                } else {
+                    mediaWrap.classList.add('d-none');
+                }
             });
         });
     </script>

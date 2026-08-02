@@ -88,6 +88,76 @@ function saveOutgoingMessage(
 }
 
 /**
+ * Save an inbound WhatsApp message delivered via webhook.
+ *
+ * @param int $businessId Foreign key to businesses.id
+ * @param string $wamid Meta WhatsApp Message ID
+ * @param string $fromNumber Sender phone number
+ * @param string $messageType 'text', 'image', 'document', 'audio', 'video', 'interactive', ...
+ * @param string|null $body Text body or caption
+ * @param string|null $mediaUrl Direct media URL if provided by the payload
+ * @param string|null $mediaType Normalized media type
+ * @param int|null $timestamp Unix timestamp of the event
+ * @return bool True on success
+ */
+function saveInboundMessage(
+    int $businessId,
+    string $wamid,
+    string $fromNumber,
+    string $messageType = 'text',
+    ?string $body = null,
+    ?string $mediaUrl = null,
+    ?string $mediaType = null,
+    ?int $timestamp = null
+): bool {
+
+    global $mysqli;
+
+    $createdAt = $timestamp ? date('Y-m-d H:i:s', (int)$timestamp) : date('Y-m-d H:i:s');
+
+    $sql = "INSERT INTO business_messages
+            (
+                business_id,
+                direction,
+                wa_message_id,
+                from_number,
+                message_type,
+                body,
+                status,
+                media_url,
+                media_type,
+                created_at
+            )
+            VALUES
+            (
+                ?, 'inbound', ?, ?, ?, ?, 'received', ?, ?, ?
+            )";
+
+    $stmt = $mysqli->prepare($sql);
+
+    if (!$stmt) {
+        return false;
+    }
+
+    $stmt->bind_param(
+        "isssssss",
+        $businessId,
+        $wamid,
+        $fromNumber,
+        $messageType,
+        $body,
+        $mediaUrl,
+        $mediaType,
+        $createdAt
+    );
+
+    $result = $stmt->execute();
+    $stmt->close();
+
+    return $result;
+}
+
+/**
  * Update a message's status by Meta WAMID and record delivery/read timestamps.
  */
 function updateMessageStatusByWamid(string $wamid, string $status, ?int $businessId = null, ?int $timestamp = null): bool
@@ -198,7 +268,7 @@ function getMessages(array $filters = [], int $page = 1, int $perPage = 20): arr
     }
 
     $status = trim((string)($filters['status'] ?? ''));
-    if ($status !== '' && in_array($status, ['queued', 'sent', 'delivered', 'read', 'failed'], true)) {
+    if ($status !== '' && in_array($status, ['queued', 'sent', 'delivered', 'read', 'failed', 'received'], true)) {
         $where[]  = "m.status = ?";
         $types   .= 's';
         $params[] = $status;
@@ -303,7 +373,7 @@ function getMessages(array $filters = [], int $page = 1, int $perPage = 20): arr
 
     while ($row = $result->fetch_assoc()) {
         // Compatibility mapping for existing UI views
-        $row['phone']       = $row['to_number'];
+        $row['phone']       = $row['direction'] === 'inbound' ? ($row['from_number'] ?? '') : ($row['to_number'] ?? '');
         $row['message']     = $row['body'];
         $row['wamid']       = $row['wa_message_id'];
         $row['allow_reply'] = 1;
@@ -336,10 +406,12 @@ function getMessageStats(): array
 
     $stats = [
         'total'     => 0,
+        'today'     => 0,
         'sent'      => 0,
         'delivered' => 0,
         'read'      => 0,
         'failed'    => 0,
+        'received'  => 0,
     ];
 
     if (!$mysqli) return $stats;
@@ -354,6 +426,11 @@ function getMessageStats(): array
                 $stats[$st] = $cnt;
             }
         }
+    }
+
+    $resToday = $mysqli->query("SELECT COUNT(*) AS cnt FROM business_messages WHERE created_at >= CURDATE()");
+    if ($resToday && $row = $resToday->fetch_assoc()) {
+        $stats['today'] = (int)$row['cnt'];
     }
 
     return $stats;

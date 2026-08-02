@@ -107,16 +107,18 @@ function sendMediaMessage(string $to, string $mediaType, string $mediaUrl, ?stri
         $mediaType = 'image';
     }
 
-    $payload = [
-        'type' => $mediaType,
-        $mediaType => [
-            'link' => $mediaUrl,
-        ],
+    $mediaPayload = [
+        'link' => $mediaUrl,
     ];
 
     if ($caption !== null && $caption !== '') {
-        $payload['caption'] = $caption;
+        $mediaPayload['caption'] = $caption;
     }
+
+    $payload = [
+        'type' => $mediaType,
+        $mediaType => $mediaPayload,
+    ];
 
     return sendWhatsAppPayload($to, $payload, $tenantCredentials);
 }

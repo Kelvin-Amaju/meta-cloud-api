@@ -2,6 +2,9 @@
 
 $config = require __DIR__ . '/config/config.php';
 
+require_once __DIR__ . '/includes/env.php';
+require_once __DIR__ . '/includes/crypto.php';
+
 // Load Meta credentials from the shared app config / .env.
 $app_id = env('META_APP_ID', $config['meta_app_id'] ?? '');
 $app_secret = env('META_APP_SECRET', $config['meta_app_secret'] ?? '');
@@ -132,6 +135,8 @@ $business = json_decode($response, true);
 
 // 5. Save connection for this tenant
 
+$storedAccessToken = encryptToken($access_token);
+
 $stmt = $db->prepare("
     INSERT INTO whatsapp_accounts
     (
@@ -151,7 +156,7 @@ $stmt = $db->prepare("
 $stmt->execute([
     ":tenant" => $state,
     ":waba" => $business_id,
-    ":token" => $access_token
+    ":token" => $storedAccessToken
 ]);
 
 

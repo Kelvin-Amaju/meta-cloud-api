@@ -3,6 +3,7 @@
 // includes/businesses.php
 
 require_once __DIR__ . '/database.php';
+require_once __DIR__ . '/crypto.php';
 
 /**
  * Generate a UUID v4 string.
@@ -111,6 +112,11 @@ function getBusinessById(int $businessId): ?array
     $business = $result->fetch_assoc();
 
     $stmt->close();
+
+    if ($business && isset($business['access_token'])) {
+        $business['access_token'] = decryptToken($business['access_token']);
+    }
+
     return $business ?: null;
 }
 
@@ -132,6 +138,37 @@ function getBusinessByUuid(string $uuid): ?array
     $business = $result->fetch_assoc();
 
     $stmt->close();
+
+    if ($business && isset($business['access_token'])) {
+        $business['access_token'] = decryptToken($business['access_token']);
+    }
+
+    return $business ?: null;
+}
+
+/**
+ * Fetch a single business record by Meta phone_number_id.
+ */
+function getBusinessByPhoneNumberId(string $phoneNumberId): ?array
+{
+    global $mysqli;
+
+    $sql = "SELECT * FROM businesses WHERE phone_number_id = ? LIMIT 1";
+    $stmt = $mysqli->prepare($sql);
+    if (!$stmt) return null;
+
+    $stmt->bind_param("s", $phoneNumberId);
+    $stmt->execute();
+
+    $result = $stmt->get_result();
+    $business = $result->fetch_assoc();
+
+    $stmt->close();
+
+    if ($business && isset($business['access_token'])) {
+        $business['access_token'] = decryptToken($business['access_token']);
+    }
+
     return $business ?: null;
 }
 
@@ -194,6 +231,7 @@ function createBusiness(array $data): array
     $checkStmt->close();
 
     $uuid = generateUuid();
+    $storedAccessToken = encryptToken($accessToken);
 
     $sql = "INSERT INTO businesses 
             (
@@ -221,7 +259,7 @@ function createBusiness(array $data): array
         $phoneNumberId,
         $displayName,
         $displayPhoneNumber,
-        $accessToken,
+        $storedAccessToken,
         $tokenType,
         $status
     );
@@ -268,6 +306,7 @@ function updateBusiness(int $id, array $data): array
     $accessToken = !empty(trim($data['access_token'] ?? '')) 
         ? trim($data['access_token']) 
         : $existing['access_token'];
+    $storedAccessToken = encryptToken($accessToken);
 
     if (empty($name)) {
         return ['success' => false, 'error' => 'Business Name cannot be empty.'];
@@ -328,7 +367,7 @@ function updateBusiness(int $id, array $data): array
         $phoneNumberId,
         $displayName,
         $displayPhoneNumber,
-        $accessToken,
+        $storedAccessToken,
         $tokenType,
         $status,
         $id

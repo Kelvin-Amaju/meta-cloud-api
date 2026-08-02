@@ -1,8 +1,8 @@
-# WhatsApp Integration Module
+# Netgrity WhatsApp API
 
-A standalone, multi-tenant WhatsApp Business Cloud API integration layer built on **Core PHP + MySQL**, designed to be consumed by multiple SaaS products (Hotel, School, Hospital, ERP, CRM, etc.) through a single shared service — with **no application talking to Meta directly**.
+A standalone, multi-tenant WhatsApp Business Cloud API integration layer built on **Core PHP + MySQL** for managing Meta-connected sender businesses, outbound message delivery, webhook receipt tracking, and template sync.
 
-See [`ARCHITECTURE.md`](./ARCHITECTURE.md) for the full directory tree, data model, and flow diagrams.
+This repository now reflects the runtime shape used in the current app: shared environment config, per-business Meta credentials, webhook status processing, and schema support for media/interactivity metadata.
 
 ---
 
@@ -35,30 +35,31 @@ Any product on the platform integrates by calling this API with a `tenant_id` �
 
 ## Features
 
-- ✅ Multi-tenant by design — one WhatsApp Business Account per tenant
-- ✅ Meta Embedded Signup for onboarding (no manual token copy-paste)
-- ✅ Encrypted token storage at rest (AES-256-GCM)
-- ✅ Text, template, and media message sending
-- ✅ Template sync from Meta (approval status, category, language)
-- ✅ Webhook-driven delivery/read/failure tracking
-- ✅ Standardized success/error JSON response envelope
-- ✅ Store-then-process webhook handling (no inline processing on request thread)
-- ✅ Framework-agnostic — pluggable into any Core PHP SaaS
+- ✅ Multi-tenant business sender model with database-backed business profiles
+- ✅ Meta Graph API text, template, media, and interactive message helpers
+- ✅ Webhook parsing for inbound messages and delivery/read receipt updates
+- ✅ Message log persistence in `business_messages` with receipt timestamps
+- ✅ Template catalog support via `message_templates`
+- ✅ New campaign-ready schema support for bulk messaging flows
+- ✅ Shared config loader using `.env` values and the app's PHP config bootstrap
+- ✅ Business and sender management screens for onboarding and editing
 
 ---
 
 ## Project Structure
 
-```
-whatsapp-integration/
-├── api/            # PHP backend (controllers, services, repositories, models)
-├── frontend/        # Connect UI, dashboard, template manager
-├── docs/           # API reference, onboarding guide, security notes
-├── ARCHITECTURE.md
+```text
+whatsapp-api/
+├── business/          # business management pages
+├── includes/          # shared DB, messaging, webhook, template, and env helpers
+├── sql/               # schema and seed scripts
+├── config/            # runtime config bootstrap
+├── callback.php       # Meta OAuth callback flow
+├── webhook.php        # webhook verification and event intake
+├── send.php           # message composer UI
+├── messages.php       # message log UI
 └── README.md
 ```
-
-Full tree with every file: see [`ARCHITECTURE.md`](./ARCHITECTURE.md#1-directory-tree).
 
 ---
 
@@ -73,42 +74,50 @@ Full tree with every file: see [`ARCHITECTURE.md`](./ARCHITECTURE.md#1-directory
 
 ### Setup
 
-1. **Clone / copy the module** into your platform, e.g. `modules/whatsapp-integration/`.
+1. **Configure environment**
+   Copy the provided `.env` values into your local environment and fill in the application-specific keys:
 
-2. **Configure environment**
-   ```bash
-   cp api/.env.example api/.env
-   ```
-   Fill in:
-   ```
-   DB_HOST=
-   DB_NAME=
-   DB_USER=
-   DB_PASS=
+   ```env
+   APP_NAME="Netgrity WhatsApp API"
+   APP_ENV=development
+   APP_DEBUG=true
+   APP_URL=http://localhost
 
+   META_API_VERSION=v25.0
+   META_VERIFY_TOKEN=
+   META_ACCESS_TOKEN=
+   META_PHONE_NUMBER_ID=
    META_APP_ID=
    META_APP_SECRET=
-   META_GRAPH_VERSION=v20.0
-   META_WEBHOOK_VERIFY_TOKEN=
 
-   TOKEN_ENCRYPTION_KEY=      # 32-byte key for AES-256-GCM
+   CALLBACK_URL=http://localhost/callback.php
+
+   DB_HOST=localhost
+   DB_PORT=3306
+   DB_NAME=netgrity_wa
+   DB_USER=root
+   DB_PASS=
    ```
 
-3. **Run migrations**
+2. **Import the schema**
    ```bash
-   mysql -u root -p your_db < api/database/migrations/001_create_tenants_table.sql
-   mysql -u root -p your_db < api/database/migrations/002_create_whatsapp_accounts_table.sql
-   mysql -u root -p your_db < api/database/migrations/003_create_whatsapp_templates_table.sql
-   mysql -u root -p your_db < api/database/migrations/004_create_whatsapp_messages_table.sql
-   mysql -u root -p your_db < api/database/migrations/005_create_webhook_events_table.sql
+   mysql -u root -p netgrity_wa < sql/netgrity_wa.sql
+   mysql -u root -p netgrity_wa < sql/whatsapp-api.sql
+   ```
+
+3. **Seed demo data** if needed:
+   ```bash
+   mysql -u root -p netgrity_wa < sql/seed_netgrity_wa.sql
    ```
 
 4. **Configure the webhook** in the Meta App Dashboard:
    - Callback URL: `https://your-domain.com/webhook`
-   - Verify Token: matches `META_WEBHOOK_VERIFY_TOKEN`
+   - Verify Token: matches `META_VERIFY_TOKEN`
    - Subscribe to: `messages`, `message_template_status_update`
 
-5. **Point a consuming app at the API**, passing its `tenant_id` on every request.
+5. **Use the callback page** for Meta OAuth/token exchange:
+   - The current callback implementation reads its credentials from the shared app config and `.env`
+   - The redirect target is now driven by `CALLBACK_URL`
 
 ---
 
@@ -165,20 +174,34 @@ Details: [`docs/SECURITY.md`](./docs/SECURITY.md) and [`ARCHITECTURE.md §7`](./
 
 ---
 
-## Roadmap
+## Current Runtime Coverage
 
-| Phase | Feature | Status |
-|---|---|---|
-| 1 | Project skeleton & config | ⬜ |
-| 2 | Meta API HTTP client | ⬜ |
-| 3 | Embedded Signup onboarding | ⬜ |
-| 4 | Webhook verification & async processing | ⬜ |
-| 5 | Template sync | ⬜ |
-| 6 | Send template messages | ⬜ |
-| 7 | Delivery/read/failure tracking | ⬜ |
-| 8 | Media messaging | ⬜ |
-| 9 | Interactive messages (buttons/lists) | ⬜ |
-| 10 | Operational hardening & tests | ⬜ |
+| Area | Status |
+|---|---|
+| Shared PHP config bootstrap | ✅ |
+| Business CRUD and sender account management | ✅ |
+| Meta text sending | ✅ |
+| Template message wrapper | ✅ |
+| Media sending helpers | ✅ |
+| Interactive button/list message helpers | ✅ |
+| Webhook parsing for message and status events | ✅ |
+| Delivery/read receipt timestamp persistence | ✅ |
+| Bulk campaign-ready schema | ✅ |
+
+---
+
+## Database Notes
+
+The current runtime expects these data-shape additions to be present in the live MySQL database:
+
+- `business_messages.delivered_at`
+- `business_messages.read_at`
+- `business_messages.media_url`
+- `business_messages.media_type`
+- `business_messages.interactive_payload`
+- `broadcast_campaigns`
+
+The migration for the new message metadata and campaign table is provided in [sql/whatsapp-api.sql](sql/whatsapp-api.sql).
 
 ---
 
