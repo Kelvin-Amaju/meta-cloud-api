@@ -1,19 +1,31 @@
 <?php
 
-// Meta App credentials
-$app_id = "YOUR_META_APP_ID";
-$app_secret = "YOUR_META_APP_SECRET";
+$config = require __DIR__ . '/config/config.php';
 
-$redirect_uri = "https://yourdomain.com/callback.php";
+// Load Meta credentials from the shared app config / .env.
+$app_id = env('META_APP_ID', $config['meta_app_id'] ?? '');
+$app_secret = env('META_APP_SECRET', $config['meta_app_secret'] ?? '');
+$redirect_uri = env('CALLBACK_URL', $config['callback_url'] ?? 'http://localhost/callback.php');
 
-// Database connection (example)
-$db = new PDO(
-    "mysql:host=localhost;dbname=crm",
-    "username",
-    "password"
-);
+// Database connection from the app config.
+try {
+    $db = new PDO(
+        'mysql:host=' . $config['db_host'] . ';port=' . $config['db_port'] . ';dbname=' . $config['db_name'] . ';charset=utf8mb4',
+        $config['db_user'],
+        $config['db_pass'],
+        [
+            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+        ]
+    );
+} catch (Throwable $e) {
+    die('Database connection failed: ' . $e->getMessage());
+}
 
 // 1. Get parameters returned by Meta
+if (empty($app_id) || empty($app_secret)) {
+    die('Missing Meta app credentials. Define META_APP_ID and META_APP_SECRET in your environment/config.');
+}
+
 if (!isset($_GET['code'])) {
     die("Authorization code missing");
 }
@@ -146,7 +158,7 @@ $stmt->execute([
 // 6. Redirect user back to CRM
 
 header(
-    "Location: https://yourdomain.com/settings/whatsapp?connected=1"
+    "Location: https://netgrity.test/settings/whatsapp?connected=1"
 );
 
 exit;

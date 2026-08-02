@@ -6,17 +6,14 @@ require_once __DIR__ . '/../includes/init.php';
 
 global $config;
 
-// Permanent System User token — Pine Agency's own, shared across every
-// tenant WABA it has been granted "Manage WhatsApp Business accounts" on.
-// Never sourced from user input for this token type.
+// Permanent System User token
 $systemUserToken = $config['access_token'] ?? '';
 
 $alert = null;
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
-    // When the admin selects "System User Token (Permanent)", ignore
-    // whatever is in the access_token field and use the .env value instead.
+    // System User Token
     $isSystemUser = ($_POST['token_type'] ?? 'system_user') === 'system_user';
 
     if ($isSystemUser && empty($systemUserToken)) {
@@ -55,7 +52,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Add Business Profile - Netgrity WhatsApp API</title>
 
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
 </head>
 
@@ -194,6 +191,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             </div>
                         </div>
 
+                        <!-- WABA Phone Number Lookup -->
+                        <div class="col-md-6">
+                            <label for="waba_id" class="form-label fw-semibold">WABA ID (Account ID)</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light text-muted"><i class="bi bi-qr-code"></i></span>
+                                <input
+                                    type="text"
+                                    class="form-control"
+                                    id="waba_id"
+                                    name="waba_id"
+                                    placeholder="e.g. 109876543210987"
+                                    value="<?= htmlspecialchars($_POST['waba_id'] ?? '') ?>">
+                                <button class="btn btn-outline-secondary" type="button" id="loadPhoneNumbersBtn">
+                                    <i class="bi bi-arrow-repeat"></i> Load
+                                </button>
+                            </div>
+                            <div class="form-text">Enter the WABA ID, then load the Meta phone-number list.</div>
+                        </div>
+
                         <!-- Phone Number ID -->
                         <div class="col-md-6">
                             <label for="phone_number_id" class="form-label fw-semibold">Phone Number ID <span class="text-danger">*</span></label>
@@ -211,8 +227,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             <div class="form-text">Meta Graph API Phone Number ID.</div>
                         </div>
 
+                        <!-- Display Name -->
+                        <div class="col-md-6">
+                            <label for="display_name" class="form-label fw-semibold">Display Name</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light text-muted"><i class="bi bi-person-badge-fill"></i></span>
+                                <input
+                                    type="text"
+                                    class="form-control"
+                                    id="display_name"
+                                    name="display_name"
+                                    placeholder="Verified display name"
+                                    value="<?= htmlspecialchars($_POST['display_name'] ?? '') ?>">
+                            </div>
+                        </div>
+
                         <!-- Display Phone Number -->
-                        <div class="col-md-12">
+                        <div class="col-md-6">
                             <label for="display_phone_number" class="form-label fw-semibold">Display Phone Number</label>
                             <div class="input-group">
                                 <span class="input-group-text bg-light text-muted"><i class="bi bi-telephone-fill"></i></span>
@@ -243,28 +274,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         </div>
 
                         <?php if (false): // ORIGINAL MANUAL-ENTRY-ONLY ACCESS TOKEN FIELD — kept as fallback.
-                        // Restore this block (and remove the version below) if System User
-                        // tokens ever need to go back to manual paste-in instead of .env.
-                        // Wrapped in `if (false)` rather than an HTML comment, since HTML
-                        // comments don't stop the embedded <?= ?> tags below from executing. ?>
-                        <div class="col-md-8">
-                            <label for="access_token" class="form-label fw-semibold">Access Token <span class="text-danger">*</span></label>
-                            <div class="input-group">
-                                <span class="input-group-text bg-light text-muted"><i class="bi bi-shield-lock-fill"></i></span>
-                                <input
-                                    type="password"
-                                    class="form-control"
-                                    id="access_token"
-                                    name="access_token"
-                                    placeholder="EAAG..."
-                                    value="<?= htmlspecialchars($_POST['access_token'] ?? '') ?>"
-                                    required>
-                                <button class="btn btn-outline-secondary" type="button" id="toggleToken">
-                                    <i class="bi bi-eye-fill"></i>
-                                </button>
+                            // Restore this block (and remove the version below) if System User
+                            // tokens ever need to go back to manual paste-in instead of .env.
+                            // Wrapped in `if (false)` rather than an HTML comment, since HTML
+                            // comments don't stop the embedded <?= 
+                        ?> tags below from executing. ?>
+                            <div class="col-md-8">
+                                <label for="access_token" class="form-label fw-semibold">Access Token <span class="text-danger">*</span></label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light text-muted"><i class="bi bi-shield-lock-fill"></i></span>
+                                    <input
+                                        type="password"
+                                        class="form-control"
+                                        id="access_token"
+                                        name="access_token"
+                                        placeholder="EAAG..."
+                                        value="<?= htmlspecialchars($_POST['access_token'] ?? '') ?>"
+                                        required>
+                                    <button class="btn btn-outline-secondary" type="button" id="toggleToken">
+                                        <i class="bi bi-eye-fill"></i>
+                                    </button>
+                                </div>
+                                <div class="form-text">Paste your Meta WhatsApp System User Access Token.</div>
                             </div>
-                            <div class="form-text">Paste your Meta WhatsApp System User Access Token.</div>
-                        </div>
                         <?php endif; ?>
 
                         <!-- Access Token — auto-filled from .env (META_ACCESS_TOKEN) when
@@ -280,10 +312,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                     name="access_token"
                                     placeholder="EAAG..."
                                     value="<?= htmlspecialchars(
-                                        (($_POST['token_type'] ?? 'system_user') === 'system_user')
-                                            ? $systemUserToken
-                                            : ($_POST['access_token'] ?? '')
-                                    ) ?>"
+                                                (($_POST['token_type'] ?? 'system_user') === 'system_user')
+                                                    ? $systemUserToken
+                                                    : ($_POST['access_token'] ?? '')
+                                            ) ?>"
                                     <?= (($_POST['token_type'] ?? 'system_user') === 'system_user') ? 'readonly' : '' ?>
                                     required>
                                 <button class="btn btn-outline-secondary" type="button" id="toggleToken">
@@ -324,7 +356,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         </div>
     </footer>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
 
     <script>
         document.getElementById('toggleToken').addEventListener('click', function() {
@@ -336,6 +368,51 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             } else {
                 tokenInput.type = 'password';
                 icon.classList.replace('bi-eye-slash-fill', 'bi-eye-fill');
+            }
+        });
+
+        const loadPhoneNumbersBtn = document.getElementById('loadPhoneNumbersBtn');
+        const wabaIdInput = document.getElementById('waba_id');
+        const phoneIdInput = document.getElementById('phone_number_id');
+        const displayPhoneInput = document.getElementById('display_phone_number');
+        const displayNameInput = document.getElementById('display_name');
+
+        loadPhoneNumbersBtn.addEventListener('click', async function() {
+            const wabaId = wabaIdInput.value.trim();
+            if (!wabaId) {
+                alert('Please enter a WABA ID before loading phone numbers.');
+                return;
+            }
+
+            loadPhoneNumbersBtn.disabled = true;
+            loadPhoneNumbersBtn.innerHTML = '<i class="bi bi-arrow-repeat"></i> Loading...';
+
+            try {
+                const response = await fetch('lookup_phone_numbers.php?waba_id=' + encodeURIComponent(wabaId));
+                const payload = await response.json();
+
+                if (!payload.success || !Array.isArray(payload.phones) || payload.phones.length === 0) {
+                    alert(payload.message || 'No phone numbers were returned for that WABA ID.');
+                    return;
+                }
+
+                const firstPhone = payload.phones[0];
+                if (firstPhone.phone_id) {
+                    phoneIdInput.value = firstPhone.phone_id;
+                }
+                if (firstPhone.display_phone_number) {
+                    displayPhoneInput.value = firstPhone.display_phone_number;
+                }
+                if (firstPhone.display_name) {
+                    displayNameInput.value = firstPhone.display_name;
+                }
+
+                alert('Loaded ' + payload.phones.length + ' phone number(s) from Meta.');
+            } catch (error) {
+                alert('Failed to load phone numbers from Meta.');
+            } finally {
+                loadPhoneNumbersBtn.disabled = false;
+                loadPhoneNumbersBtn.innerHTML = '<i class="bi bi-arrow-repeat"></i> Load';
             }
         });
 
@@ -351,9 +428,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if (this.value === 'system_user') {
                 accessTokenInput.value = SYSTEM_USER_TOKEN;
                 accessTokenInput.setAttribute('readonly', 'readonly');
-                tokenHelpText.innerHTML = SYSTEM_USER_TOKEN
-                    ? '<i class="bi bi-check-circle-fill text-success"></i> Pulled automatically from <code>.env</code> (<code>META_ACCESS_TOKEN</code>) — no need to paste it here.'
-                    : '<i class="bi bi-exclamation-triangle-fill text-warning"></i> <code>META_ACCESS_TOKEN</code> is not set in <code>.env</code>. Set it there, or switch Token Type to Temporary to paste one manually.';
+                tokenHelpText.innerHTML = SYSTEM_USER_TOKEN ?
+                    '<i class="bi bi-check-circle-fill text-success"></i> Pulled automatically from <code>.env</code> (<code>META_ACCESS_TOKEN</code>) — no need to paste it here.' :
+                    '<i class="bi bi-exclamation-triangle-fill text-warning"></i> <code>META_ACCESS_TOKEN</code> is not set in <code>.env</code>. Set it there, or switch Token Type to Temporary to paste one manually.';
             } else {
                 accessTokenInput.value = '';
                 accessTokenInput.removeAttribute('readonly');

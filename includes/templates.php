@@ -58,19 +58,15 @@ function getTemplateByName(int $businessId, string $name): ?array
 /**
  * Send a WhatsApp template message via Meta Cloud API.
  *
- * ASSUMPTION: mirrors the presumed shape of your existing sendTextMessage()
- * — same return contract (['success', 'status', 'data', 'error']) so
- * send.php can handle both the same way. If your real sendTextMessage()
- * builds requests differently (shared cURL wrapper, different header
- * setup, api_version pulled from config differently), point me at it and
- * I'll align this exactly instead of duplicating the request logic.
+ * This keeps the legacy send.php contract intact while avoiding the duplicate
+ * helper name that now exists in includes/whatsapp.php.
  *
  * @param string $phone       Recipient phone, digits only
  * @param array  $template    ['name' => string, 'language' => string]
  * @param array  $variables   Ordered list of values for {{1}}, {{2}}, ...
  * @param array  $business    Business row (needs phone_number_id, access_token)
  */
-function sendTemplateMessage(string $phone, array $template, array $variables, array $business): array
+function sendLegacyTemplateMessage(string $phone, array $template, array $variables, array $business): array
 {
     $apiVersion = env('META_API_VERSION', 'v25.0');
     $url = "https://graph.facebook.com/{$apiVersion}/{$business['phone_number_id']}/messages";

@@ -35,6 +35,7 @@ CREATE TABLE `businesses` (
   `meta_business_id` varchar(50) DEFAULT NULL,
   `waba_id` varchar(50) DEFAULT NULL,
   `phone_number_id` varchar(50) NOT NULL,
+  `display_name` varchar(120) DEFAULT NULL,
   `display_phone_number` varchar(20) DEFAULT NULL,
   `access_token` text NOT NULL,
   `token_type` enum('temporary','system_user') NOT NULL DEFAULT 'system_user',

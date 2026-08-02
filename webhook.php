@@ -4,7 +4,9 @@
 
 $config = require __DIR__ . '/config/config.php';
 
+require __DIR__ . '/includes/database.php';
 require __DIR__ . '/includes/logger.php';
+require __DIR__ . '/includes/messages.php';
 require __DIR__ . '/includes/webhook_parser.php';
 
 // ─────────────────────────────────────────────
@@ -38,12 +40,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     logWebhook($payload);
 
     // Parse the payload into a normalised internal format
-    $message = parseWebhook($payload);
+    $event = parseWebhook($payload);
 
-    if ($message) {
-        // TODO: handle the incoming message
-        // e.g. save to DB, trigger auto-reply, etc.
-        logWebhook('Parsed message from ' . $message['from'] . ': ' . $message['body']);
+    if ($event) {
+        if (($event['type'] ?? null) === 'status' && !empty($event['wamid'])) {
+            $status = $event['status'] ?? 'sent';
+            updateMessageStatusByWamid($event['wamid'], $status, null, $event['timestamp'] ?? null);
+            logWebhook('Parsed status update for ' . $event['wamid'] . ' -> ' . $status);
+        } else {
+            logWebhook('Parsed message from ' . ($event['from'] ?? 'unknown') . ': ' . ($event['body'] ?? ''));
+        }
     }
 
     // Meta requires HTTP 200 + exactly this text; anything else triggers retries

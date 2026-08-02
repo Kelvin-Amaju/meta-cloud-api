@@ -11,8 +11,10 @@ return [
     // ── Meta / WhatsApp Cloud API ──────────────────────────────
     'api_version'     => env('META_API_VERSION', 'v25.0'),
     'verify_token'    => env('META_VERIFY_TOKEN', ''),
-    'access_token'    => env('META_ACCESS_TOKEN', ''),   // Permanent System User token (Pine Agency's own)
+    'access_token'    => env('META_ACCESS_TOKEN', ''),   // Permanent System User token
     'phone_number_id' => env('META_PHONE_NUMBER_ID', ''),
+    'meta_app_id'     => env('META_APP_ID', ''),
+    'meta_app_secret' => env('META_APP_SECRET', ''),
 
     // ── Database ───────────────────────────────────────────────
     'db_host'         => env('DB_HOST', 'localhost'),
@@ -26,5 +28,6 @@ return [
     'app_env'         => env('APP_ENV',   'development'),
     'app_debug'       => env('APP_DEBUG',  true),
     'app_url'         => env('APP_URL',   'http://localhost'),
+    'callback_url'    => env('CALLBACK_URL', 'http://localhost/callback.php')
 
 ];

@@ -9,7 +9,7 @@ $businessId = (int)($_GET['id'] ?? 0);
 $business   = $businessId > 0 ? getBusinessById($businessId) : null;
 
 if (!$business) {
-    header("Location: index");
+    header("Location: ./");
     exit;
 }
 
@@ -28,20 +28,58 @@ $statusClass = 'badge-status-' . strtolower($business['status'] ?? 'pending');
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title><?= htmlspecialchars($business['name']) ?> - Business Details</title>
 
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
     <style>
-        .badge-hotel { background-color: #ffc107; color: #000; }
-        .badge-school { background-color: #0dcaf0; color: #000; }
-        .badge-hospital { background-color: #dc3545; color: #fff; }
-        .badge-erp { background-color: #0d6efd; color: #fff; }
-        .badge-crm { background-color: #198754; color: #fff; }
-        .badge-other { background-color: #6c757d; color: #fff; }
+        .badge-hotel {
+            background-color: #ffc107;
+            color: #000;
+        }
 
-        .badge-status-active { background-color: #198754; color: #fff; }
-        .badge-status-pending { background-color: #ffc107; color: #000; }
-        .badge-status-suspended { background-color: #fd7e14; color: #fff; }
-        .badge-status-revoked { background-color: #dc3545; color: #fff; }
+        .badge-school {
+            background-color: #0dcaf0;
+            color: #000;
+        }
+
+        .badge-hospital {
+            background-color: #dc3545;
+            color: #fff;
+        }
+
+        .badge-erp {
+            background-color: #0d6efd;
+            color: #fff;
+        }
+
+        .badge-crm {
+            background-color: #198754;
+            color: #fff;
+        }
+
+        .badge-other {
+            background-color: #6c757d;
+            color: #fff;
+        }
+
+        .badge-status-active {
+            background-color: #198754;
+            color: #fff;
+        }
+
+        .badge-status-pending {
+            background-color: #ffc107;
+            color: #000;
+        }
+
+        .badge-status-suspended {
+            background-color: #fd7e14;
+            color: #fff;
+        }
+
+        .badge-status-revoked {
+            background-color: #dc3545;
+            color: #fff;
+        }
     </style>
 </head>
 
@@ -248,7 +286,7 @@ $statusClass = 'badge-status-' . strtolower($business['status'] ?? 'pending');
         </div>
     </footer>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
 
     <script>
         document.getElementById('toggleToken').addEventListener('click', function() {

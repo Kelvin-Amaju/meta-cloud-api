@@ -23,10 +23,21 @@ function saveOutgoingMessage(
     int $allowReply = 1,
     int $businessId = 1,
     string $status = 'sent',
-    ?string $errorMessage = null
+    ?string $errorMessage = null,
+    string $messageType = 'text',
+    ?string $mediaUrl = null,
+    ?string $mediaType = null,
+    ?array $interactivePayload = null
 ): bool {
 
     global $mysqli;
+
+    $allowedStatuses = ['queued', 'sent', 'delivered', 'read', 'failed'];
+    if (!in_array($status, $allowedStatuses, true)) {
+        $status = 'sent';
+    }
+
+    $interactiveJson = $interactivePayload ? json_encode($interactivePayload) : null;
 
     $sql = "INSERT INTO business_messages
             (
@@ -37,12 +48,17 @@ function saveOutgoingMessage(
                 message_type,
                 body,
                 status,
+                delivered_at,
+                read_at,
                 error_message,
+                media_url,
+                media_type,
+                interactive_payload,
                 created_at
             )
             VALUES
             (
-                ?, 'outbound', ?, ?, 'text', ?, ?, ?, NOW()
+                ?, 'outbound', ?, ?, ?, ?, ?, NULL, NULL, ?, ?, ?, ?, NOW()
             )";
 
     $stmt = $mysqli->prepare($sql);
@@ -52,15 +68,70 @@ function saveOutgoingMessage(
     }
 
     $stmt->bind_param(
-        "isssss",
+        "isssssssss",
         $businessId,
         $wamid,
         $toPhone,
+        $messageType,
         $message,
         $status,
-        $errorMessage
+        $errorMessage,
+        $mediaUrl,
+        $mediaType,
+        $interactiveJson
     );
 
+    $result = $stmt->execute();
+    $stmt->close();
+
+    return $result;
+}
+
+/**
+ * Update a message's status by Meta WAMID and record delivery/read timestamps.
+ */
+function updateMessageStatusByWamid(string $wamid, string $status, ?int $businessId = null, ?int $timestamp = null): bool
+{
+    global $mysqli;
+
+    $allowedStatuses = ['queued', 'sent', 'delivered', 'read', 'failed'];
+    if (!in_array($status, $allowedStatuses, true)) {
+        return false;
+    }
+
+    $setParts = ['status = ?'];
+    $types = 's';
+    $params = [$status];
+
+    $timestampString = null;
+    if ($timestamp !== null) {
+        $timestampString = date('Y-m-d H:i:s', (int)$timestamp);
+    } else {
+        $timestampString = date('Y-m-d H:i:s');
+    }
+
+    if ($status === 'delivered') {
+        $setParts[] = 'delivered_at = ?';
+        $types .= 's';
+        $params[] = $timestampString;
+    }
+
+    if ($status === 'read') {
+        $setParts[] = 'read_at = ?';
+        $types .= 's';
+        $params[] = $timestampString;
+    }
+
+    $sql = 'UPDATE business_messages SET ' . implode(', ', $setParts) . ' WHERE wa_message_id = ? LIMIT 1';
+    $stmt = $mysqli->prepare($sql);
+    if (!$stmt) {
+        return false;
+    }
+
+    $types .= 's';
+    $params[] = $wamid;
+
+    $stmt->bind_param($types, ...$params);
     $result = $stmt->execute();
     $stmt->close();
 
@@ -197,7 +268,8 @@ function getMessages(array $filters = [], int $page = 1, int $perPage = 20): arr
 
     // Fetch page data
     $dataSql = "SELECT m.id, m.business_id, m.direction, m.wa_message_id, m.to_number, m.from_number,
-                       m.message_type, m.body, m.status, m.error_message, m.created_at,
+                       m.message_type, m.body, m.status, m.delivered_at, m.read_at, m.error_message,
+                       m.media_url, m.media_type, m.interactive_payload, m.created_at,
                        b.name AS business_name, b.product_line, b.display_phone_number AS business_display_phone
                 FROM business_messages m
                 LEFT JOIN businesses b ON m.business_id = b.id
@@ -236,6 +308,10 @@ function getMessages(array $filters = [], int $page = 1, int $perPage = 20): arr
         $row['wamid']       = $row['wa_message_id'];
         $row['allow_reply'] = 1;
         $row['tenant_name'] = $row['business_name'];
+        $row['media_url']   = $row['media_url'] ?? null;
+        $row['media_type']  = $row['media_type'] ?? null;
+        $row['delivery_time'] = $row['delivered_at'] ?? null;
+        $row['read_time']     = $row['read_at'] ?? null;
         $data[] = $row;
     }
 

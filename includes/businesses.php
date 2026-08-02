@@ -150,6 +150,7 @@ function createBusiness(array $data): array
     $metaBusinessId     = trim($data['meta_business_id'] ?? '');
     $wabaId             = trim($data['waba_id'] ?? '');
     $phoneNumberId      = trim($data['phone_number_id'] ?? '');
+    $displayName        = trim($data['display_name'] ?? '');
     $displayPhoneNumber = trim($data['display_phone_number'] ?? '');
     $accessToken        = trim($data['access_token'] ?? '');
     $tokenType          = trim($data['token_type'] ?? 'system_user');
@@ -197,12 +198,12 @@ function createBusiness(array $data): array
     $sql = "INSERT INTO businesses 
             (
                 uuid, name, product_line, meta_business_id, waba_id, 
-                phone_number_id, display_phone_number, access_token, 
+                phone_number_id, display_name, display_phone_number, access_token, 
                 token_type, status, onboarding_method, onboarded_at, created_at
             )
             VALUES 
             (
-                ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'manual', NOW(), NOW()
+                ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'manual', NOW(), NOW()
             )";
 
     $stmt = $mysqli->prepare($sql);
@@ -211,13 +212,14 @@ function createBusiness(array $data): array
     }
 
     $stmt->bind_param(
-        "ssssssssss",
+        "sssssssssss",
         $uuid,
         $name,
         $productLine,
         $metaBusinessId,
         $wabaId,
         $phoneNumberId,
+        $displayName,
         $displayPhoneNumber,
         $accessToken,
         $tokenType,
@@ -257,6 +259,7 @@ function updateBusiness(int $id, array $data): array
     $metaBusinessId     = trim($data['meta_business_id'] ?? $existing['meta_business_id']);
     $wabaId             = trim($data['waba_id'] ?? $existing['waba_id']);
     $phoneNumberId      = trim($data['phone_number_id'] ?? $existing['phone_number_id']);
+    $displayName        = trim($data['display_name'] ?? $existing['display_name'] ?? '');
     $displayPhoneNumber = trim($data['display_phone_number'] ?? $existing['display_phone_number']);
     $tokenType          = trim($data['token_type'] ?? $existing['token_type']);
     $status             = trim($data['status'] ?? $existing['status']);
@@ -304,6 +307,7 @@ function updateBusiness(int $id, array $data): array
                 meta_business_id = ?,
                 waba_id = ?,
                 phone_number_id = ?,
+                display_name = ?,
                 display_phone_number = ?,
                 access_token = ?,
                 token_type = ?,
@@ -316,12 +320,13 @@ function updateBusiness(int $id, array $data): array
     }
 
     $stmt->bind_param(
-        "sssssssssi",
+        "ssssssssssi",
         $name,
         $productLine,
         $metaBusinessId,
         $wabaId,
         $phoneNumberId,
+        $displayName,
         $displayPhoneNumber,
         $accessToken,
         $tokenType,
