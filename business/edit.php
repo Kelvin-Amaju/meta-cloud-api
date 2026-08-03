@@ -44,28 +44,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="../assets/css/app.css" rel="stylesheet">
 </head>
 
 <body class="bg-light min-vh-100 d-flex flex-column py-4">
 
-    <!-- Top Navbar -->
-    <nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4 shadow-sm py-3">
-        <div class="container-fluid container-xl">
-            <a class="navbar-brand d-flex align-items-center gap-2" href="../index">
-                <i class="bi bi-whatsapp text-success fs-4"></i>
-                <span class="fw-bold">Netgrity</span> WhatsApp Multi-Tenant
-            </a>
-
-            <div class="d-flex align-items-center gap-2">
-                <a href="view?id=<?= $business['id'] ?>" class="btn btn-outline-light btn-sm">
-                    <i class="bi bi-eye me-1"></i> View Profile
-                </a>
-                <a href="index" class="btn btn-outline-light btn-sm">
-                    <i class="bi bi-arrow-left me-1"></i> Directory
-                </a>
-            </div>
-        </div>
-    </nav>
+    <?php $navBase = '../';
+    $activeNav = 'business';
+    require __DIR__ . '/../includes/partials/navbar.php'; ?>
 
     <div class="container my-auto" style="max-width: 860px;">
 
@@ -281,7 +267,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <!-- Actions -->
                     <div class="d-flex align-items-center justify-content-between pt-3 border-top">
                         <a href="view?id=<?= $business['id'] ?>" class="btn btn-outline-secondary px-4">Cancel</a>
-                        <button type="submit" class="btn btn-primary px-4 fw-semibold d-flex align-items-center gap-2 shadow-sm">
+                        <button type="submit" class="btn btn-ng-secondary px-4 fw-semibold d-flex align-items-center gap-2 shadow-sm">
                             <i class="bi bi-save-fill"></i> Update Business Account
                         </button>
                     </div>

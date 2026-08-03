@@ -97,6 +97,7 @@ $stats      = getBusinessSummaryStats();
 
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="../assets/css/app.css" rel="stylesheet">
     <style>
         .token-input {
             font-family: monospace;
@@ -157,26 +158,9 @@ $stats      = getBusinessSummaryStats();
 <body class="bg-light min-vh-100 d-flex flex-column">
 
     <!-- Top Navbar -->
-    <nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4 shadow-sm py-3">
-        <div class="container-fluid container-xl">
-            <a class="navbar-brand d-flex align-items-center gap-2" href="../index">
-                <i class="bi bi-whatsapp text-success fs-4"></i>
-                <span class="fw-bold">Netgrity</span> WhatsApp Multi-Tenant
-            </a>
-
-            <div class="d-flex align-items-center gap-2">
-                <a href="../send" class="btn btn-success btn-sm">
-                    <i class="bi bi-paperplane-fill me-1"></i> Send Message
-                </a>
-                <a href="../messages" class="btn btn-outline-light btn-sm">
-                    <i class="bi bi-chat-left-text me-1"></i> Logs
-                </a>
-                <a href="../home" class="btn btn-outline-light btn-sm">
-                    <i class="bi bi-speedometer2 me-1"></i> Dashboard
-                </a>
-            </div>
-        </div>
-    </nav>
+    <?php $navBase = '../';
+    $activeNav = 'business';
+    require __DIR__ . '/../includes/partials/navbar.php'; ?>
 
     <div class="container-fluid container-xl mb-5 my-auto">
 
@@ -191,7 +175,7 @@ $stats      = getBusinessSummaryStats();
             </div>
 
             <div>
-                <a href="add" class="btn btn-success btn shadow-sm d-flex align-items-center gap-2">
+                <a href="add" class="btn btn-ng-secondary btn shadow-sm d-flex align-items-center gap-2">
                     <i class="bi bi-plus-lg"></i> Add New Business
                 </a>
             </div>
@@ -324,10 +308,10 @@ $stats      = getBusinessSummaryStats();
 
                     <!-- Buttons -->
                     <div class="col-12 col-md-2 d-flex gap-2">
-                        <button type="submit" class="btn btn-primary flex-grow-1">
+                        <button type="submit" class="btn btn-ng-secondary flex-grow-1">
                             <i class="bi bi-filter me-1"></i> Filter
                         </button>
-                        <a href="index" class="btn btn-outline-secondary" title="Reset Filters">
+                        <a href="index" class="btn btn-ng-black" title="Reset Filters">
                             <i class="bi bi-arrow-counterclockwise"></i>
                         </a>
                     </div>
@@ -401,7 +385,7 @@ $stats      = getBusinessSummaryStats();
                                             <a href="edit?id=<?= $b['id'] ?>" class="btn btn-outline-primary" title="Edit Profile">
                                                 <i class="bi bi-pencil"></i>
                                             </a>
-                                            <a href="../send?business_id=<?= $b['id'] ?>" class="btn btn-outline-success" title="Send WhatsApp Message">
+                                            <a href="../send?business_id=<?= $b['id'] ?>" class="btn btn-ng-primary" title="Send WhatsApp Message">
                                                 <i class="bi bi-send-fill"></i>
                                             </a>
                                             <button

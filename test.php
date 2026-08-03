@@ -70,22 +70,14 @@ function getQualityBadge(string $rating): string
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- Bootstrap Icons -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="assets/css/app.css" rel="stylesheet">
 </head>
 
 <body class="bg-light min-vh-100 d-flex flex-column">
 
     <!-- Top Navbar -->
-    <nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4 shadow-sm">
-        <div class="container">
-            <a class="navbar-brand d-flex align-items-center gap-2" href="index">
-                <i class="bi bi-whatsapp text-success fs-4"></i>
-                <span class="fw-bold">Netgrity</span> WhatsApp API
-            </a>
-            <a href="index" class="btn btn-outline-light btn-sm">
-                <i class="bi bi-arrow-left me-1"></i> Dashboard
-            </a>
-        </div>
-    </nav>
+    <?php $activeNav = 'home';
+    require __DIR__ . '/includes/partials/navbar.php'; ?>
 
     <div class="container my-auto py-4" style="max-width: 760px;">
 
@@ -205,7 +197,7 @@ function getQualityBadge(string $rating): string
                     <a href="index" class="btn btn-light border text-muted">
                         <i class="bi bi-arrow-left me-1"></i> Dashboard
                     </a>
-                    <a href="send" class="btn btn-success fw-semibold">
+                    <a href="send" class="btn btn-ng-secondary fw-semibold">
                         <i class="bi bi-paperplane-fill me-1"></i> Send Test Message
                     </a>
                 </div>

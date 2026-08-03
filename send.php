@@ -438,6 +438,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="assets/css/app.css" rel="stylesheet">
     <style>
         .business-card {
             cursor: pointer;
@@ -486,7 +487,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         .badge-other { background-color: #6c757d; color: #fff; }
 
         .mode-toggle .btn-check:checked + .btn-outline-success {
-            background-color: #198754;
+            background-color: #ff6b00;
+            border-color: #ff6b00;
             color: #fff;
         }
 
@@ -510,23 +512,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <body class="bg-light min-vh-100 d-flex flex-column">
 
     <!-- Top Navbar -->
-    <nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4 shadow-sm py-3">
-        <div class="container-fluid container-xl">
-            <a class="navbar-brand d-flex align-items-center gap-2" href="index">
-                <i class="bi bi-whatsapp text-success fs-4"></i>
-                <span class="fw-bold">Netgrity</span> WhatsApp Multi-Tenant
-            </a>
-
-            <div class="d-flex align-items-center gap-2">
-                <a href="messages" class="btn btn-outline-light btn-sm">
-                    <i class="bi bi-chat-left-text me-1"></i> Logs
-                </a>
-                <a href="home" class="btn btn-outline-light btn-sm">
-                    <i class="bi bi-speedometer2 me-1"></i> Dashboard
-                </a>
-            </div>
-        </div>
-    </nav>
+    <?php $activeNav = 'send';
+    require __DIR__ . '/includes/partials/navbar.php'; ?>
 
     <div class="container-fluid container-xl mb-5 my-auto">
 
@@ -961,7 +948,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                     <i class="bi bi-x-circle me-1"></i> Cancel
                                 </a>
 
-                                <button type="submit" class="btn btn-success btn-lg px-4 shadow-sm">
+                                <button type="submit" class="btn btn-ng-secondary btn-lg px-4 shadow-sm">
                                     <i class="bi bi-paperplane-fill me-2"></i> Send Message
                                 </button>
                             </div>

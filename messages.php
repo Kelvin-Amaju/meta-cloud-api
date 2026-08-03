@@ -136,6 +136,7 @@ function timeAgo(string $datetime): string
 
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="assets/css/app.css" rel="stylesheet">
 
     <style>
         .msg-preview {
@@ -164,23 +165,8 @@ function timeAgo(string $datetime): string
 <body class="bg-light min-vh-100 d-flex flex-column">
 
     <!-- Top Navbar -->
-    <nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4 shadow-sm">
-        <div class="container">
-            <a class="navbar-brand d-flex align-items-center gap-2" href="index">
-                <i class="bi bi-whatsapp text-success fs-4"></i>
-                <span class="fw-bold">Netgrity</span> WhatsApp API
-            </a>
-
-            <div class="d-flex gap-2">
-                <a href="send" class="btn btn-success btn-sm">
-                    <i class="bi bi-send me-1"></i> Send Message
-                </a>
-                <a href="index" class="btn btn-outline-light btn-sm">
-                    <i class="bi bi-arrow-left me-1"></i> Dashboard
-                </a>
-            </div>
-        </div>
-    </nav>
+    <?php $activeNav = 'messages';
+    require __DIR__ . '/includes/partials/navbar.php'; ?>
 
     <div class="container py-2 flex-grow-1" style="max-width:1100px;">
 
@@ -288,10 +274,10 @@ function timeAgo(string $datetime): string
                     </div>
 
                     <div class="col-6 col-md-2 d-flex gap-2">
-                        <button type="submit" class="btn btn-success flex-grow-1">
+                        <button type="submit" class="btn btn-ng-secondary flex-grow-1">
                             <i class="bi bi-funnel-fill"></i>
                         </button>
-                        <a href="messages" class="btn btn-outline-secondary" title="Clear filters">
+                        <a href="messages" class="btn btn-ng-black" title="Clear filters">
                             <i class="bi bi-x-lg"></i>
                         </a>
                     </div>
@@ -325,12 +311,12 @@ function timeAgo(string $datetime): string
                     <?php if ($search !== '' || $reply !== '' || $status !== '' || $dateFrom !== '' || $dateTo !== ''): ?>
                         No messages match your filters.
                         <div class="mt-2">
-                            <a href="messages" class="btn btn-sm btn-outline-secondary">Clear filters</a>
+                            <a href="messages" class="btn btn-sm btn-ng-black">Clear filters</a>
                         </div>
                     <?php else: ?>
                         No messages sent yet.
                         <div class="mt-2">
-                            <a href="send" class="btn btn-sm btn-success">Send your first message</a>
+                            <a href="send" class="btn btn-sm btn-ng-secondary">Send your first message</a>
                         </div>
                     <?php endif; ?>
                 </div>

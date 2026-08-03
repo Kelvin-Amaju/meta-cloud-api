@@ -30,6 +30,7 @@ $statusClass = 'badge-status-' . strtolower($business['status'] ?? 'pending');
 
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="../assets/css/app.css" rel="stylesheet">
     <style>
         .badge-hotel {
             background-color: #ffc107;
@@ -86,20 +87,9 @@ $statusClass = 'badge-status-' . strtolower($business['status'] ?? 'pending');
 <body class="bg-light min-vh-100 d-flex flex-column py-4">
 
     <!-- Top Navbar -->
-    <nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4 shadow-sm py-3">
-        <div class="container-fluid container-xl">
-            <a class="navbar-brand d-flex align-items-center gap-2" href="../index">
-                <i class="bi bi-whatsapp text-success fs-4"></i>
-                <span class="fw-bold">Netgrity</span> WhatsApp Multi-Tenant
-            </a>
-
-            <div class="d-flex align-items-center gap-2">
-                <a href="index" class="btn btn-outline-light btn-sm">
-                    <i class="bi bi-arrow-left me-1"></i> Business Directory
-                </a>
-            </div>
-        </div>
-    </nav>
+    <?php $navBase = '../';
+    $activeNav = 'business';
+    require __DIR__ . '/../includes/partials/navbar.php'; ?>
 
     <div class="container my-auto" style="max-width: 960px;">
 
@@ -121,7 +111,7 @@ $statusClass = 'badge-status-' . strtolower($business['status'] ?? 'pending');
                 <a href="edit?id=<?= $business['id'] ?>" class="btn btn-outline-primary shadow-sm">
                     <i class="bi bi-pencil me-1"></i> Edit Profile
                 </a>
-                <a href="../send?business_id=<?= $business['id'] ?>" class="btn btn-success shadow-sm">
+                <a href="../send?business_id=<?= $business['id'] ?>" class="btn btn-ng-secondary shadow-sm">
                     <i class="bi bi-paperplane-fill me-1"></i> Send WhatsApp Message
                 </a>
             </div>

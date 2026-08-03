@@ -1,0 +1,133 @@
+/* assets/css/app.css — Netgrity WhatsApp API unified theme
+   White = primary, Orange = secondary, Black = strong CTAs */
+
+:root {
+    --ng-orange: #ff6b00;
+    --ng-orange-dark: #e05f00;
+    --ng-black: #272626;
+    --ng-black-soft: #111111;
+    --ng-muted: #6c757d;
+}
+
+/* ── Buttons ─────────────────────────────────────────── */
+
+.btn-ng-primary {
+    background-color: #ffffff;
+    color: var(--ng-black);
+    border: 1px solid #e2e2e2;
+}
+.btn-ng-primary:hover {
+    background-color: #f2f2f2;
+    color: var(--ng-black);
+    border-color: #c8c8c8;
+}
+
+.btn-ng-secondary {
+    background-color: var(--ng-orange);
+    color: #ffffff;
+    border: 1px solid var(--ng-orange);
+}
+.btn-ng-secondary:hover {
+    background-color: var(--ng-orange-dark);
+    color: #ffffff;
+    border-color: var(--ng-orange-dark);
+}
+.btn-ng-secondary:focus {
+    box-shadow: 0 0 0 0.25rem rgba(255, 107, 0, 0.25);
+}
+
+.btn-ng-black {
+    background-color: var(--ng-black);
+    color: #ffffff;
+    border: 1px solid var(--ng-black);
+}
+.btn-ng-black:hover {
+    background-color: #000000;
+    color: #ffffff;
+    border-color: #000000;
+}
+
+.btn-ng-outline {
+    background-color: transparent;
+    color: var(--ng-orange);
+    border: 1px solid var(--ng-orange);
+}
+.btn-ng-outline:hover {
+    background-color: var(--ng-orange);
+    color: #ffffff;
+}
+
+/* ── Navbar ──────────────────────────────────────────── */
+
+.navbar-ng {
+    background-color: var(--ng-black) !important;
+    border-bottom: 2px solid var(--ng-orange);
+}
+.navbar-ng .navbar-brand {
+    color: #ffffff !important;
+}
+.navbar-ng .navbar-brand .ng-accent {
+    color: var(--ng-orange);
+}
+.navbar-ng .navbar-toggler {
+    border-color: rgba(255, 255, 255, 0.35);
+}
+.navbar-ng .nav-link {
+    color: rgba(255, 255, 255, 0.72) !important;
+    font-weight: 500;
+}
+.navbar-ng .nav-link:hover,
+.navbar-ng .nav-link.active {
+    color: #ffffff !important;
+}
+.navbar-ng .nav-link.active {
+    border-bottom: 2px solid var(--ng-orange);
+}
+
+/* ── Text & headings ─────────────────────────────────── */
+
+.ng-title {
+    color: var(--ng-black);
+    font-weight: 700;
+}
+.ng-title-accent {
+    color: var(--ng-orange);
+}
+.ng-text-muted {
+    color: var(--ng-muted) !important;
+}
+
+/* ── Cards ───────────────────────────────────────────── */
+
+.card-ng {
+    border: 1px solid #eeeeee;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+}
+.card-ng .card-header-ng {
+    background-color: #ffffff;
+    border-bottom: 1px solid #f1f1f1;
+}
+
+/* ── Icon chips (orange tint) ────────────────────────── */
+
+.ng-icon-box {
+    background-color: rgba(255, 107, 0, 0.12);
+    color: var(--ng-orange);
+}
+
+/* ── Badges ──────────────────────────────────────────── */
+
+.badge-ng-soft {
+    background-color: #fef0e5;
+    color: var(--ng-orange);
+    border: 1px solid #ffd9b8;
+}
+
+/* ── Misc ────────────────────────────────────────────── */
+
+.stat-card .display-6 {
+    font-weight: 700;
+}
+.table-hover tbody tr {
+    cursor: pointer;
+}

@@ -3,6 +3,7 @@
 // includes/messages.php
 
 require_once __DIR__ . '/database.php';
+require_once __DIR__ . '/conversations.php';
 
 /**
  * Save an outgoing WhatsApp message into business_messages.
@@ -82,7 +83,20 @@ function saveOutgoingMessage(
     );
 
     $result = $stmt->execute();
+    $insertId = $result ? $stmt->insert_id : null;
     $stmt->close();
+
+    if ($result && $insertId) {
+        $customerId = syncCustomerConversation($businessId, $toPhone, 'outbound', $message);
+        if ($customerId) {
+            $upd = $mysqli->prepare("UPDATE business_messages SET customer_id = ? WHERE id = ?");
+            if ($upd) {
+                $upd->bind_param("ii", $customerId, $insertId);
+                $upd->execute();
+                $upd->close();
+            }
+        }
+    }
 
     return $result;
 }
@@ -152,7 +166,20 @@ function saveInboundMessage(
     );
 
     $result = $stmt->execute();
+    $insertId = $result ? $stmt->insert_id : null;
     $stmt->close();
+
+    if ($result && $insertId) {
+        $customerId = syncCustomerConversation($businessId, $fromNumber, 'inbound', $body ?? ($mediaType ?? $messageType));
+        if ($customerId) {
+            $upd = $mysqli->prepare("UPDATE business_messages SET customer_id = ? WHERE id = ?");
+            if ($upd) {
+                $upd->bind_param("ii", $customerId, $insertId);
+                $upd->execute();
+                $upd->close();
+            }
+        }
+    }
 
     return $result;
 }

@@ -7,19 +7,9 @@
 | **Language** | PHP (procedural) |
 | **Database** | MySQL (via `mysqli`) |
 | **External API** | Meta WhatsApp Cloud API (Graph API v25.0) |
-| **UI** | Bootstrap 5.2.3 + Bootstrap Icons |
-| **Status** | Milestone 1 complete — foundation ready for feature expansion |
-
----
-
-## Two Layers in One Repo
-
-The workspace contains **two overlapping implementation layers**:
-
-| Layer | Root | Purpose |
-|---|---|---|
-| **Procedural (active)** | `c:\laragon\www\netgrity\whatsapp-api\` | Working integration: send messages, webhook, message log UI |
-| **MVC (planned)** | `mvc/` | Blueprint for the full multi-tenant SaaS module (no code files yet, only scaffolding docs) |
+| **UI** | Bootstrap 5 + Bootstrap Icons + Chart.js 4 |
+| **Theme** | White primary / orange (`#ff6b00`) secondary / black CTAs |
+| **Status** | Full feature set implemented — inbox, conversations, contacts, templates, broadcast, analytics |
 
 ---
 
@@ -27,38 +17,65 @@ The workspace contains **two overlapping implementation layers**:
 
 ```
 whatsapp-api/
-├── .env                  ← Live secrets (gitignored)
-├── .env.example          ← Template
-├── .htaccess             ← Apache rewrite rules
+├── .env                     ← Live secrets (gitignored)
+├── .env.example             ← Template
+├── .htaccess                ← Apache rewrite rules (extensionless URLs)
+├── index.php                ← Entry point (redirects to home)
+├── home.php                 ← Dashboard: 8-card feature launcher + logs
+├── send.php                 ← Send message form (text/template/media/interactive)
+├── messages.php             ← Message history (10/page, status filter, badges)
+├── inbox.php                ← Conversation list + thread view + reply + unread badge
+├── contacts.php             ← Customer records CRUD + CSV import
+├── templates.php            ← Template manager (list/sync/create/delete)
+├── broadcast.php            ← Campaigns: CSV upload + synchronous send
+├── analytics.php            ← Chart.js dashboards (time, status, business, template, top customers)
+├── test.php                 ← Meta connectivity diagnostics
+├── webhook.php              ← Meta webhook (GET verify + POST events, HMAC-signed)
+├── callback.php             ← Meta OAuth callback flow (writes whatsapp_accounts — not wired to UI)
+├── business_signup_callback.php
+├── instruct.md              ← Step-by-step Meta-side setup guide for the user
+├── get_meata.md             ← Reference: every requirement Meta must provide
 ├── config/
-│   └── config.php        ← Loads .env → returns config array
+│   └── config.php           ← Loads .env → returns config array
 ├── includes/
-│   ├── init.php          ← Single bootstrapper (require once per page)
-│   ├── env.php           ← .env file parser
-│   ├── database.php      ← mysqli connection ($mysqli global)
-│   ├── helpers.php       ← response(), sanitize(), post(), get(), redirect(), dd()
-│   ├── logger.php        ← logWebhook(), logRequest(), logError() → storage/logs/
-│   ├── whatsapp.php      ← sendTextMessage() via cURL → Meta Graph API
-│   ├── webhook_parser.php← parseWebhook() normalizes Meta JSON payload
-│   └── messages.php      ← DB CRUD: saveOutgoingMessage(), getMessages(), getMessageStats()
-├── storage/logs/         ← webhook.log, requests.log, errors.log
+│   ├── init.php             ← Single bootstrapper (require once per page)
+│   ├── env.php              ← .env file parser
+│   ├── database.php         ← mysqli connection ($mysqli global)
+│   ├── helpers.php          ← response(), sanitize(), post(), get(), redirect(), dd()
+│   ├── logger.php           ← logWebhook(), logRequest(), logError() → storage/logs/
+│   ├── crypto.php           ← AES token encryption/decryption
+│   ├── whatsapp.php         ← sendTextMessage()/sendTemplateMessage()/sendMediaMessage()/interactive via cURL
+│   ├── webhook_parser.php   ← parseWebhook() normalizes Meta JSON payload
+│   ├── webhook_security.php ← verifyWebhookSignature() (X-Hub-Signature-256)
+│   ├── businesses.php       ← Business CRUD, getBusinessById() (decrypts token), getBusinessByPhoneNumberId()
+│   ├── messages.php         ← saveOutgoingMessage(), saveInboundMessage(), getMessages(), getMessageStats(), updateMessageStatusByWamid()
+│   ├── customers.php        ← Customer CRUD, findOrCreateCustomer(), importCustomersFromCsv(), getCustomerStats()
+│   ├── conversations.php    ← syncCustomerConversation(), getConversations(), getThreadMessages(), markConversationRead(), getUnreadCount()
+│   ├── templates.php        ← Template CRUD + syncTemplatesFromMeta() via Graph API
+│   ├── broadcasts.php       ← createCampaign(), getCampaigns(), runCampaign() (synchronous)
+│   ├── analytics.php        ← getMessagesOverTime(), getStatusBreakdown(), getTopCustomers(), ...
+│   ├── tenants.php          ← Legacy compatibility shim
+│   └── partials/
+│       └── navbar.php       ← Shared navbar (uses $navBase for subdirectory pages, inbox unread badge)
+├── assets/
+│   └── css/app.css          ← Theme: --ng-primary/--ng-orange/--ng-black, .btn-ng-*, .navbar-ng, .card-ng
+├── bin/
+│   ├── run_migration.php    ← Applies sql/migration_full_features.sql to the live DB
+│   ├── sync_templates.php   ← CLI: sync templates from Meta (all or one business)
+│   ├── smoke_test.php       ← Renders every page in its own process to catch runtime errors
+│   ├── smoke_one.php        ← Render a single page (used by smoke_test.php)
+│   └── check_db.php         ← Checks for required tables/columns
+├── storage/logs/            ← webhook.log, requests.log, errors.log
 ├── sql/
-│   └── whatsapp-api.sql  ← Schema: messages, tenants + ALTER stubs
-│
-│   — Public pages —
-├── index.php             ← Entry point (redirects)
-├── home.php              ← Dashboard UI
-├── send.php              ← Send message form + handler
-├── messages.php          ← Message history listing (filterable, paginated)
-├── webhook.php           ← Meta webhook endpoint (GET verification + POST events)
-├── test.php              ← API connectivity test page
-├── mock_meta.php         ← Local mock of Meta's /messages endpoint
-│
-└── mvc/                  ← Future MVC rewrite (planning docs only)
-    ├── README.md
-    ├── architecture.md
-    ├── composer.json
-    └── app/              ← Empty scaffold dirs (Controllers, Services, Repositories…)
+│   ├── netgrity_wa.sql      ← Base schema (businesses, business_messages, message_templates, broadcast_campaigns, ...)
+│   ├── whatsapp-api.sql     ← Legacy schema + campaign-ready stubs
+│   ├── migration_add_inbound_support.sql
+│   ├── migration_add_business_display_name.sql
+│   ├── migration_full_features.sql  ← customers, conversations, broadcast_recipients, business_messages.customer_id + backfills
+│   └── seed_netgrity_wa.sql
+├── api/                     ← Empty (api.php is 0 bytes) — REST endpoints not implemented
+├── settings/                ← whatsapp.php (empty)
+└── business/                ← index.php, add.php, edit.php, view.php, t.php
 ```
 
 ---
@@ -74,135 +91,111 @@ Returns a PHP array loaded from `.env` via `includes/env.php`.
 | `phone_number_id` | `META_PHONE_NUMBER_ID` |
 | `access_token` | `META_ACCESS_TOKEN` |
 | `verify_token` | `META_VERIFY_TOKEN` |
+| `meta_app_id` / `meta_app_secret` | `META_APP_ID` / `META_APP_SECRET` |
+| `callback_url` | `CALLBACK_URL` |
 | `db_*` | `DB_HOST / DB_USER / DB_PASS / DB_NAME` |
 
----
-
 ### `includes/init.php` — Bootstrapper
-Single `require_once` that loads all modules in order:
 ```
-session_start → env.php → database.php → helpers.php → logger.php → whatsapp.php → webhook_parser.php
+session_start → env.php → database.php → helpers.php → logger.php → businesses.php → tenants.php → whatsapp.php → webhook_parser.php
 ```
-Pages only need one line: `require_once 'includes/init.php';`
-
----
+Feature modules (`messages.php`, `customers.php`, `conversations.php`, `templates.php`, `broadcasts.php`, `analytics.php`) are required per-page as needed.
 
 ### `includes/whatsapp.php` — API Client
-`sendTextMessage(string $to, string $message): array`
+`sendTextMessage(string $to, string $message, ?array $tenantCredentials): array`
 
-- Builds the Meta Graph API URL: `https://graph.facebook.com/{version}/{phone_number_id}/messages`
-- Posts a JSON payload with `messaging_product: whatsapp`, `type: text`
-- Returns `['success' => bool, 'status' => int, 'data' => array]`
-- A commented-out mock URL is available for local testing
+- Builds `https://graph.facebook.com/{version}/{phone_number_id}/messages`
+- Helpers: `sendTemplateMessage()`, `sendMediaMessage()`, `sendInteractiveButtonsMessage()`, `sendInteractiveListMessage()`
+- Per-tenant credentials (decrypted access_token, phone_number_id) override the `.env` fallback.
 
----
-
-### `includes/webhook_parser.php` — Parser
-`parseWebhook(string $payload): ?array`
-
-Normalizes Meta's deeply-nested JSON to a flat internal format:
-```php
-['id' => '...', 'from' => '234...', 'type' => 'text', 'body' => '...']
-```
-Returns `null` for non-message events (status updates, etc.).
-
----
+### `includes/webhook_parser.php` + `includes/webhook_security.php`
+`parseWebhook(string $payload): ?array` normalizes Meta JSON → `['id', 'from', 'type', 'body', 'business_phone_id', 'media_url', 'wamid', 'status', 'timestamp']`. `verifyWebhookSignature()` checks `X-Hub-Signature-256` using `META_APP_SECRET`.
 
 ### `webhook.php` — Meta Webhook Endpoint
-- **GET** → verifies `hub_mode=subscribe` + `hub_verify_token` → echoes `hub_challenge`
-- **POST** → reads raw body → `logWebhook()` → `parseWebhook()` → responds `200 EVENT_RECEIVED`
-- Currently has a `// TODO: handle incoming message` stub (save to DB, auto-reply)
+- **GET** → `hub_mode`/`hub_verify_token` check → echoes `hub_challenge`
+- **POST** → rejects without a valid HMAC signature → `parseWebhook()` → inbound messages saved via `saveInboundMessage()` (matched to business via `getBusinessByPhoneNumberId()`); status updates applied via `updateMessageStatusByWamid()`; replies `200 EVENT_RECEIVED`
 
----
-
-### `includes/messages.php` — Data Layer
+### `includes/messages.php` — Message Data Layer
 | Function | Description |
 |---|---|
-| `saveOutgoingMessage($phone, $message, $wamid, $allowReply)` | INSERT to `messages` table |
-| `getLastOutgoingMessage($phone)` | Latest message per phone number |
-| `getMessages($filters, $page, $perPage)` | Paginated list with search, reply-type & date filters |
-| `getMessageStats()` | COUNT aggregates: total, today, one-way, two-way |
+| `saveOutgoingMessage()` | INSERT outbound + sync customer/conversation |
+| `saveInboundMessage()` | INSERT inbound (`status='received'`) + sync customer/conversation |
+| `getMessages($filters, $page, $perPage)` | Paginated list, search/status/type/date filters |
+| `getMessageStats()` | COUNT aggregates (total, today, delivered, read, ...) |
+| `updateMessageStatusByWamid()` | Delivery/read/failed tracking from webhooks |
 
----
-
-### `messages.php` (public) — Message History UI
-Full Bootstrap table with:
-- Stats header (4 cards)
-- Search / type / date-range filter form
-- Paginated table (20 per page, ±2 page window)
-- Click-to-open Bootstrap modal with full message details
-- `timeAgo()` helper for human-readable timestamps
-
----
-
-### Database Schema (`sql/whatsapp-api.sql`)
-
-**`messages`** — outbound messages (currently in use)
-
-| Column | Type |
+### `includes/customers.php` — Customer Records
+| Function | Description |
 |---|---|
-| `id` | `BIGINT AUTO_INCREMENT` |
-| `wa_message_id` | `VARCHAR(120) UNIQUE` |
-| `direction` | `ENUM('inbound','outbound')` |
-| `phone`, `type`, `body`, `status` | varchar / longtext |
-| `media_id`, `raw_payload` | JSON |
-| `created_at` | `TIMESTAMP` |
+| `findOrCreateCustomer()` | Get-or-create by business + normalized phone |
+| `getCustomers()` / `getCustomerById()` | Listing/detail with stats |
+| `createCustomer()` / `updateCustomer()` / `deleteCustomer()` | CRUD |
+| `importCustomersFromCsv()` | CSV upload (phone, name, email, tags, notes) |
+| `getCustomerStats()` | Totals, active 7-day, inbound counts |
 
-**`tenants`** — multi-tenant ready (planned)
+### `includes/conversations.php` — Threads
+| Function | Description |
+|---|---|
+| `syncCustomerConversation()` | Upsert conversation, bump preview, increment unread on inbound |
+| `getConversations()` / `getConversation()` | List + single |
+| `getThreadMessages()` | Message history for a conversation |
+| `markConversationRead()` / `setConversationStatus()` | Open/close, clear unread |
+| `getUnreadCount()` | Total unread (navbar badge) |
 
-Stores per-tenant Meta credentials (WABA ID, phone_number_id, access_token, verify_token), billing plan, and status.
+### `includes/templates.php` — Template Catalog
+`getTemplatesForBusiness()` (filterable by status/type), `createTemplate()`, `deleteTemplate()`, and **`syncTemplatesFromMeta($businessId)`** — pulls the WABA's `message_templates` via Graph API and upserts into `message_templates` (also runnable via `bin/sync_templates.php`).
 
-> [!NOTE]
-> The schema SQL also includes `ALTER TABLE` stubs to add `tenant_id` FK to `contacts`, `messages`, `templates`, `campaigns`, and `logs` — these reference tables not yet created.
+### `includes/broadcasts.php` — Campaigns
+`createCampaign()`, `getCampaigns()`, `getCampaignById()`, `saveCampaignRecipient()`, `getCampaignRecipientCounts()`, `runCampaign()` — sends each recipient sequentially (text or approved template) with a 200 ms delay; per-recipient status/error stored in `broadcast_recipients`.
+
+### `includes/analytics.php` — Dashboards
+`getMessagesOverTime()`, `getStatusBreakdown()`, `getBusinessBreakdown()`, `getTypeBreakdown()`, `getTemplatePerformance()`, `getTopCustomers()` — all filtered by `days` + `business_id`.
 
 ---
 
-### `mvc/` — Future MVC Architecture (Planning Stage)
+## Database Schema
 
-Per `mvc/README.md`, this is a **standalone multi-tenant WhatsApp module** intended to be consumed by other SaaS products (Hotel, School, Hospital, ERP, CRM). Key design goals:
+Core tables (see `sql/netgrity_wa.sql` + `sql/migration_full_features.sql`):
 
-- One Meta App → multiple tenants, each with their own WABA + phone number
-- Meta Embedded Signup for onboarding (no manual token copy-paste)
-- AES-256-GCM encrypted token storage
-- Store-then-process async webhook handling
-- JWT/API key auth on its own endpoints
+**`businesses`** — sender tenants. Per-business `waba_id`, `phone_number_id`, `display_name`, `display_phone_number`, `access_token` (AES-encrypted), `product_line`, `status`. Decrypted by `getBusinessById()`.
 
-**Planned API endpoints:**
-| Method | Endpoint |
-|---|---|
-| `POST` | `/api/whatsapp/connect` |
-| `POST` | `/api/whatsapp/messages/text` |
-| `POST` | `/api/whatsapp/messages/template` |
-| `POST` | `/api/whatsapp/messages/media` |
-| `GET`  | `/api/whatsapp/templates` |
-| `POST` | `/api/whatsapp/templates/sync` |
+**`business_messages`** — all traffic. `direction` (`inbound`/`outbound`), `status` (`queued/sent/delivered/read/failed/received`), `type`/`message_type`, `body`, `media_url`/`media_type`, `wamid`, receipt timestamps, `customer_id` FK → `customers` (SET NULL).
+
+**`customers`** *(added)* — `business_id` FK, `phone` (unique per business), `name`, `email`, `tags`, `notes`, `last_message_at`, `total_messages`.
+
+**`conversations`** *(added)* — one per `business_id`+`customer_id`, `last_message_at`/`last_message_preview`/`last_direction`, `unread_count`, `status` (`open`/`closed`).
+
+**`message_templates`** — Meta templates (name, language, body, category, status) populated by template sync.
+
+**`broadcast_campaigns`** — campaign metadata (business, subject, message/template, recipient_count).
+
+**`broadcast_recipients`** *(added)* — per-recipient `phone`, `status` (`pending/sent/failed`), `wamid`, `error_message`, `sent_at`.
 
 ---
 
 ## Current Status
 
-### ✅ Working (Milestone 1)
-- Config management via `.env`
-- MySQL database connectivity
-- `sendTextMessage()` via Meta Cloud API
-- Webhook verification (GET handshake)
-- Webhook payload reception + logging
-- Message persistence (outbound)
-- Message history UI with filters/pagination
-- API connectivity test page (`test.php`)
+### ✅ Working
+- Config management via `.env`; per-business credentials with AES encryption
+- Text / template / media / interactive sending
+- Webhook verification (GET handshake + HMAC signature) and inbound/status intake
+- Inbox, conversation threading, unread counts
+- Customer records + CSV import, auto-sync from traffic
+- Template manager with Meta sync (manual + CLI)
+- Broadcast campaigns (CSV + synchronous send with status tracking)
+- Analytics dashboards (Chart.js)
+- Message history with filters/pagination (10/page)
+- Unified theme + shared navbar across all pages
+- `bin/run_migration.php` applied `migration_full_features.sql` to the live DB (7/7 OK)
 
 ### ⬜ Deferred / Planned
-- Incoming message persistence (webhook `// TODO` stub)
-- Inbound/outbound conversation threads
-- Template messaging
-- Media messaging (image, audio, video, document)
-- Interactive messages (buttons, lists)
-- Delivery/read receipt tracking
-- Broadcast / bulk messaging
-- Multi-tenant isolation
-- User authentication & role management
-- Analytics dashboard
+- REST API in `api/api.php` (JWT/API-key auth)
+- Embedded Signup UI trigger on `business/add.php`; route `callback.php` into `businesses`
+- `message_template_status_update` webhook parsing (automatic template approval sync)
+- Inbound media download via Meta Media API
 - Chatbot / auto-reply engine
+- User authentication & role management
+- Cleanup of orphaned helpers (`getLastOutgoingMessage()`, `tenants.php`)
 
 ---
 
@@ -212,13 +205,19 @@ Per `mvc/README.md`, this is a **standalone multi-tenant WhatsApp module** inten
 > `includes/database.php` creates `$mysqli` as a **global variable**. All DB functions use `global $mysqli;`. Be aware of this when adding new modules.
 
 > [!WARNING]
-> `whatsapp.php` also uses `global $config;` from a top-level `require`. If `sendTextMessage()` is called from a context where `$config` wasn't loaded in the same scope, it will silently use empty defaults.
+> `whatsapp.php` send helpers use `global $config;` and fall back to `.env` values when `$tenantCredentials` are not supplied. Prefer passing the decrypted per-business credentials array (from `getBusinessById()`).
+
+> [!WARNING]
+> The webhook POST handler **requires** a valid `X-Hub-Signature-256` (needs `META_APP_SECRET`). Without it, every real Meta POST is rejected with 401.
 
 > [!NOTE]
-> The current `messages` table in `database.php`/`messages.php` has a different schema from `sql/whatsapp-api.sql`. The SQL file has `wa_message_id`, `direction`, `body`, `media_id`, `raw_payload`; the INSERT in `includes/messages.php` uses `phone`, `message`, `wamid`, `allow_reply`. These need to be reconciled before migration.
+> Access tokens are AES-encrypted at rest. Always read business credentials through `getBusinessById()` / `getBusinessByPhoneNumberId()`, which decrypt `access_token`.
 
 > [!NOTE]
-> `webhook.php` does **not** verify the `X-Hub-Signature-256` HMAC signature from Meta. The MVC layer plans to add this, but the current procedural layer is vulnerable to spoofed webhook POSTs.
+> The shared navbar uses relative links prefixed by `$navBase`. Pages in `business/` must set `$navBase = '../'` before requiring `includes/partials/navbar.php`, or nav links 404.
+
+> [!NOTE]
+> `sql/whatsapp-api.sql` is a legacy snapshot; the runtime schema lives in `sql/netgrity_wa.sql` + the `sql/migration_*.sql` files. Apply the full set on a fresh DB.
 
 > [!TIP]
-> `api/api.php` is **completely empty** (0 bytes). It appears to be a placeholder for the REST API entry point.
+> `bin/smoke_test.php` renders every page in an isolated PHP process against the live DB — run it after schema or page changes.
