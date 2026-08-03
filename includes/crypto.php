@@ -10,11 +10,13 @@ function getEncryptionKey(): string
     $key = env('APP_ENCRYPTION_KEY', '');
 
     if ($key === '') {
+        error_log('[crypto] APP_ENCRYPTION_KEY is not set in .env — tokens cannot be encrypted/decrypted.');
         return '';
     }
 
     $decoded = base64_decode($key, true);
     if ($decoded === false || strlen($decoded) !== 32) {
+        error_log('[crypto] APP_ENCRYPTION_KEY must be a base64-encoded 32-byte (256-bit) key.');
         return '';
     }
 
@@ -34,7 +36,11 @@ function encryptToken(?string $plaintext): ?string
 
     $key = getEncryptionKey();
     if ($key === '') {
-        return $plaintext;
+        // Fail closed: never silently store an access token as plaintext.
+        throw new RuntimeException(
+            'Cannot encrypt token: APP_ENCRYPTION_KEY is missing or invalid in .env. ' .
+            'Refusing to store an access token as plaintext.'
+        );
     }
 
     $ivLength = openssl_cipher_iv_length('AES-256-GCM');
@@ -75,19 +81,22 @@ function decryptToken(?string $stored): ?string
 
     $key = getEncryptionKey();
     if ($key === '') {
-        return $stored;
+        error_log('[crypto] Cannot decrypt token: APP_ENCRYPTION_KEY missing or invalid in .env.');
+        return null;
     }
 
     $payload = substr($stored, strlen('enc:v1:'));
     $decodedJson = base64_decode($payload, true);
     if ($decodedJson === false) {
-        return $stored;
+        error_log('[crypto] Invalid token payload (bad base64).');
+        return null;
     }
 
     try {
         $parts = json_decode($decodedJson, true, 512, JSON_THROW_ON_ERROR);
     } catch (JsonException $e) {
-        return $stored;
+        error_log('[crypto] Invalid token payload (bad JSON).');
+        return null;
     }
 
     $iv = base64_decode($parts['iv'] ?? '', true);
@@ -95,7 +104,8 @@ function decryptToken(?string $stored): ?string
     $ct = base64_decode($parts['ct'] ?? '', true);
 
     if ($iv === false || $tag === false || $ct === false) {
-        return $stored;
+        error_log('[crypto] Invalid token payload (bad iv/tag/ct).');
+        return null;
     }
 
     $plainText = openssl_decrypt(
@@ -107,5 +117,10 @@ function decryptToken(?string $stored): ?string
         $tag
     );
 
-    return $plainText === false ? $stored : $plainText;
+    if ($plainText === false) {
+        error_log('[crypto] Failed to decrypt token — payload tampered or encryption key mismatch.');
+        return null;
+    }
+
+    return $plainText;
 }

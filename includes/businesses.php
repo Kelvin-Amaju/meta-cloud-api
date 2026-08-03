@@ -231,7 +231,11 @@ function createBusiness(array $data): array
     $checkStmt->close();
 
     $uuid = generateUuid();
-    $storedAccessToken = encryptToken($accessToken);
+    try {
+        $storedAccessToken = encryptToken($accessToken);
+    } catch (RuntimeException $e) {
+        return ['success' => false, 'id' => null, 'error' => $e->getMessage()];
+    }
 
     $sql = "INSERT INTO businesses 
             (
@@ -302,11 +306,23 @@ function updateBusiness(int $id, array $data): array
     $tokenType          = trim($data['token_type'] ?? $existing['token_type']);
     $status             = trim($data['status'] ?? $existing['status']);
     
-    // Only update access_token if a new non-empty token is supplied
-    $accessToken = !empty(trim($data['access_token'] ?? '')) 
-        ? trim($data['access_token']) 
-        : $existing['access_token'];
-    $storedAccessToken = encryptToken($accessToken);
+    // Only update access_token if a new non-empty token is supplied;
+    // otherwise preserve the raw stored value (never decrypt just to re-encrypt).
+    $newAccessToken = trim($data['access_token'] ?? '');
+    if ($newAccessToken !== '') {
+        try {
+            $storedAccessToken = encryptToken($newAccessToken);
+        } catch (RuntimeException $e) {
+            return ['success' => false, 'error' => $e->getMessage()];
+        }
+    } else {
+        $rawStmt = $mysqli->prepare("SELECT access_token FROM businesses WHERE id = ? LIMIT 1");
+        $rawStmt->bind_param("i", $id);
+        $rawStmt->execute();
+        $rawRow = $rawStmt->get_result()->fetch_assoc();
+        $rawStmt->close();
+        $storedAccessToken = $rawRow['access_token'] ?? $existing['access_token'];
+    }
 
     if (empty($name)) {
         return ['success' => false, 'error' => 'Business Name cannot be empty.'];

@@ -16,6 +16,7 @@ $navItems = [
     'messages'  => ['label' => 'Messages',    'href' => 'messages',    'icon' => 'bi-chat-left-text'],
     'analytics' => ['label' => 'Analytics',   'href' => 'analytics',   'icon' => 'bi-bar-chart-line'],
     'business'  => ['label' => 'Business',    'href' => 'business',    'icon' => 'bi-building'],
+    'settings'  => ['label' => 'Settings',    'href' => 'settings/whatsapp', 'icon' => 'bi-gear'],
 ];
 
 $unreadCount = function_exists('getUnreadCount') ? getUnreadCount() : 0;

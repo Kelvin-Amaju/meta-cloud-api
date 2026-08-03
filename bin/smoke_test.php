@@ -13,6 +13,8 @@ $pages = [
     'send.php',
     'business/index.php',
     'business/add.php',
+    'settings/whatsapp.php',
+    'business_signup_callback.php',
     'test.php',
 ];
 

@@ -4,7 +4,7 @@
 
 require_once __DIR__ . '/includes/init.php';
 
-$config = require __DIR__ . '/config/config_test.php';
+$config = require __DIR__ . '/config/config.php';
 
 // Diagnostic state variables
 $apiVersion    = $config['api_version'] ?? 'v18.0';

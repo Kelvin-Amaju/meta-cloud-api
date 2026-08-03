@@ -1,16 +1,18 @@
 # Netgrity WhatsApp API
 
-A standalone, multi-tenant WhatsApp Business Cloud API integration layer built on **Core PHP + MySQL**, designed to be consumed by multiple SaaS products (Hotel, School, Hospital, ERP, CRM, etc.) through a single shared service — with **no application talking to Meta directly**.
+A standalone, multi-tenant WhatsApp Business Cloud API platform built on **Core PHP + MySQL** for managing Meta-connected sender businesses, outbound/inbound messaging, inbox & conversations, contacts, template sync, broadcast campaigns, and analytics.
 
-See [`ARCHITECTURE.md`](./ARCHITECTURE.md) for the full directory tree, data model, and flow diagrams.
+The module is the runtime face of the Netgrity SaaS: instead of wiring WhatsApp into each product (Hotel, School, Hospital, ERP, CRM), this module centralizes everything and provides ready-to-use UI pages. Consuming products never talk to Meta directly.
+
+Docs: [ARCHITECTURE.md](./ARCHITECTURE.md) · [docs/API.md](./docs/API.md) · [docs/SECURITY.md](./docs/SECURITY.md) · [instruct.md](./instruct.md) (Meta-side setup) · [get_meata.md](./get_meata.md) (Meta requirements)
 
 ---
 
 ## Why this exists
 
-Rather than embedding WhatsApp logic into each SaaS product (Hotel, School, Hospital, ERP, CRM), this module centralizes:
+Centralizes in one place:
 
-- Business onboarding & credential storage (AES-encrypted)
+- Business onboarding & credential storage (AES-256-GCM encrypted)
 - Outbound messaging (text, template, media, interactive)
 - Inbound webhook intake (messages + delivery/read/failed statuses)
 - Inbox & conversation threading with unread tracking
@@ -26,7 +28,7 @@ Rather than embedding WhatsApp logic into each SaaS product (Hotel, School, Hosp
 | Layer | Choice |
 |---|---|
 | Backend | Core PHP (procedural), Bootstrap 5 UI |
-| Database | MySQL (mysqli) |
+| Database | MySQL (mysqli, prepared statements) |
 | Frontend | Bootstrap 5.3 + Bootstrap Icons + Chart.js 4 (CDN) |
 | External API | Meta WhatsApp Business Cloud API (Graph API v25.0) |
 | Theme | White primary / orange (`#ff6b00`) secondary / black CTAs |
@@ -35,30 +37,49 @@ Rather than embedding WhatsApp logic into each SaaS product (Hotel, School, Hosp
 
 ## Features
 
-- ✅ Multi-tenant by design — one WhatsApp Business Account per tenant
-- ✅ Meta Embedded Signup for onboarding (no manual token copy-paste)
-- ✅ Encrypted token storage at rest (AES-256-GCM)
-- ✅ Text, template, and media message sending
-- ✅ Template sync from Meta (approval status, category, language)
-- ✅ Webhook-driven delivery/read/failure tracking
-- ✅ Standardized success/error JSON response envelope
-- ✅ Store-then-process webhook handling (no inline processing on request thread)
-- ✅ Framework-agnostic — pluggable into any Core PHP SaaS
+- ✅ Business sender CRUD with per-business encrypted credentials
+- ✅ Text / template / media / interactive message helpers
+- ✅ Webhook verification (GET handshake + `X-Hub-Signature-256`) and inbound/status intake
+- ✅ **Inbox** — conversation list, threaded view, reply, unread badge
+- ✅ **Contacts** — customer records CRUD + CSV import, auto-sync from traffic
+- ✅ **Template manager** — list/sync from Meta/create/delete (`syncTemplatesFromMeta()`)
+- ✅ **Broadcast** — campaigns, CSV upload, synchronous send, per-recipient status
+- ✅ **Analytics** — messages over time, status/type/business breakdowns, template performance, top customers
+- ✅ **Embedded Signup** — Meta onboarding popup launched from Settings, token saved per business
+- ✅ Message history with filters, pagination (10/page), type/status badges
+- ✅ CLI tooling (`bin/`) for migration, template sync, smoke testing
 
 ---
 
 ## Project Structure
 
-```
-whatsapp-integration/
-├── api/            # PHP backend (controllers, services, repositories, models)
-├── frontend/        # Connect UI, dashboard, template manager
-├── docs/           # API reference, onboarding guide, security notes
-├── ARCHITECTURE.md
-└── README.md
+```text
+whatsapp-api/
+├── business/            # business management pages
+├── settings/whatsapp.php# settings + Embedded Signup launcher
+├── includes/            # DB, messaging, webhook, customers, conversations, templates, broadcasts, analytics, oauth
+├── sql/                 # base schema + feature migrations
+├── config/              # runtime config bootstrap (.env)
+├── assets/css/          # app.css theme
+├── bin/                 # CLI: run_migration, sync_templates, smoke_test
+├── docs/                # API.md, SECURITY.md
+├── instruct.md          # step-by-step Meta-side setup guide
+├── get_meata.md         # reference of everything required from Meta
+├── home.php             # dashboard (8-card feature launcher)
+├── inbox.php            # conversations + threaded inbox
+├── contacts.php         # customer records + CSV import
+├── templates.php        # template manager + Meta sync
+├── broadcast.php        # campaigns + CSV upload + send
+├── analytics.php        # Chart.js dashboards
+├── send.php             # message composer (text/template/media/interactive)
+├── messages.php         # message log UI
+├── webhook.php          # webhook verification and event intake
+├── callback.php         # classic OAuth callback
+├── business_signup_callback.php # Embedded Signup popup callback
+└── test.php             # Meta connectivity diagnostics
 ```
 
-Full tree with every file: see [`ARCHITECTURE.md`](./ARCHITECTURE.md#1-directory-tree).
+Full tree with every file: [ARCHITECTURE.md](./ARCHITECTURE.md#2-directory-tree).
 
 ---
 
@@ -72,80 +93,105 @@ Full tree with every file: see [`ARCHITECTURE.md`](./ARCHITECTURE.md#1-directory
 
 ### Setup
 
-1. **Clone / copy the module** into your platform, e.g. `modules/whatsapp-integration/`.
+1. **Configure environment** — copy `.env.example` to `.env` and fill in the keys
+   (`DB_*`, `META_APP_ID`, `META_APP_SECRET`, `META_VERIFY_TOKEN`, `META_ACCESS_TOKEN`,
+   `META_PHONE_NUMBER_ID`, and the required **`APP_ENCRYPTION_KEY`** — see below).
 
-2. **Configure environment**
-   ```bash
-   cp api/.env.example api/.env
-   ```
-   Fill in:
-   ```
-   DB_HOST=
-   DB_NAME=
-   DB_USER=
-   DB_PASS=
-
+   ```env
+   APP_NAME="Netgrity WhatsApp API"
+   APP_ENV=development
+   APP_URL=http://localhost
+   APP_ENCRYPTION_KEY=            # base64 32-byte key — REQUIRED (fail-closed)
+   META_API_VERSION=v25.0
+   META_VERIFY_TOKEN=
+   META_ACCESS_TOKEN=
+   META_PHONE_NUMBER_ID=
    META_APP_ID=
    META_APP_SECRET=
-   META_GRAPH_VERSION=v20.0
-   META_WEBHOOK_VERIFY_TOKEN=
-
-   TOKEN_ENCRYPTION_KEY=      # 32-byte key for AES-256-GCM
+   CALLBACK_URL=http://localhost/callback.php
+   DB_HOST=localhost
+   DB_PORT=3306
+   DB_NAME=netgrity_wa
+   DB_USER=root
+   DB_PASS=
    ```
 
-3. **Run migrations**
+   Generate the encryption key with:
    ```bash
-   mysql -u root -p your_db < api/database/migrations/001_create_tenants_table.sql
-   mysql -u root -p your_db < api/database/migrations/002_create_whatsapp_accounts_table.sql
-   mysql -u root -p your_db < api/database/migrations/003_create_whatsapp_templates_table.sql
-   mysql -u root -p your_db < api/database/migrations/004_create_whatsapp_messages_table.sql
-   mysql -u root -p your_db < api/database/migrations/005_create_webhook_events_table.sql
+   php -r "echo base64_encode(openssl_random_pseudo_bytes(32)), PHP_EOL;"
+   ```
+   Without it, access tokens are **refused at save time** (no plaintext is ever stored).
+
+2. **Import the schema**
+   ```bash
+   mysql -u root -p netgrity_wa < sql/netgrity_wa.sql
    ```
 
-4. **Configure the webhook** in the Meta App Dashboard:
-   - Callback URL: `https://your-domain.com/webhook`
-   - Verify Token: matches `META_WEBHOOK_VERIFY_TOKEN`
-   - Subscribe to: `messages`, `message_template_status_update`
+3. **Apply the feature migration** (creates `customers`, `conversations`,
+   `broadcast_recipients`, links `business_messages.customer_id`, backfills from traffic):
+   ```bash
+   php bin/run_migration.php
+   ```
 
-5. **Point a consuming app at the API**, passing its `tenant_id` on every request.
+4. **Sanity-check pages**:
+   ```bash
+   php bin/smoke_test.php
+   ```
+
+5. **Meta-side setup** — follow `instruct.md` (§1–§7): create the app, register the phone
+   number, wire `/webhook` + subscribe to fields, create + approve templates, then sync via
+   the Templates page or `bin/sync_templates.php`. `test.php` validates connectivity.
+
+---
+
+## Webhook Configuration
+
+- Callback URL: `https://your-domain.com/webhook`
+- Verify Token: matches `META_VERIFY_TOKEN`
+- Subscribe to: `messages`, `message_template_status_update`, `message_template_quality_update`, `account_update`, `phone_number_quality_update`
+
+POSTs are HMAC-verified with `META_APP_SECRET` (`X-Hub-Signature-256`) — see [docs/SECURITY.md](./docs/SECURITY.md).
 
 ---
 
 ## API Overview
 
-The Meta-facing webhook is live at `/webhook`. The internal REST API (`api/api.php`) is currently an **empty placeholder** and is not yet implemented.
+The Meta-facing webhook is live at `/webhook`. The internal REST API (`api/api.php`) is an
+**empty placeholder** and is not yet implemented — see [docs/API.md](./docs/API.md).
 
 | Endpoint | Status | Description |
 |---|---|---|
 | `GET` / `POST` | `/webhook` | ✅ Meta webhook verification / event intake |
+| `GET` | `/settings/whatsapp` | ✅ Settings + Embedded Signup launcher |
+| `GET` | `/business_signup_callback.php` | ✅ Embedded Signup popup callback |
+| `GET` | `/callback.php` | ✅ Classic OAuth callback |
 
-Planned REST endpoints (see `mvc/` planning docs): `POST /api/whatsapp/connect`, `POST /api/whatsapp/messages/text|template|media`, `GET /api/whatsapp/messages/{id}`, `GET|POST /api/whatsapp/templates`.
+Planned REST endpoints: `POST /api/whatsapp/connect`, `POST /api/whatsapp/messages/text|template|media`,
+`GET /api/whatsapp/messages/{id}`, `GET|POST /api/whatsapp/templates`.
 
 ---
 
 ## Security
 
-- All traffic over HTTPS
-- Access tokens AES-encrypted at rest, decrypted only server-side (`getBusinessById()`)
-- Webhook POSTs verified via `X-Hub-Signature-256` before trust (requires `META_APP_SECRET`)
-- Prepared statements throughout the DB layer
+- Access tokens AES-256-GCM encrypted at rest; encryption **fails closed** (no plaintext stored)
+- Webhook POSTs verified via `X-Hub-Signature-256` before trust
+- Prepared statements throughout the DB layer; output HTML-escaped
+- Full notes: [docs/SECURITY.md](./docs/SECURITY.md)
 
 ---
 
-## Current Runtime Coverage
+## Database
 
-| Phase | Feature | Status |
-|---|---|---|
-| 1 | Project skeleton & config | ⬜ |
-| 2 | Meta API HTTP client | ⬜ |
-| 3 | Embedded Signup onboarding | ⬜ |
-| 4 | Webhook verification & async processing | ⬜ |
-| 5 | Template sync | ⬜ |
-| 6 | Send template messages | ⬜ |
-| 7 | Delivery/read/failure tracking | ⬜ |
-| 8 | Media messaging | ⬜ |
-| 9 | Interactive messages (buttons/lists) | ⬜ |
-| 10 | Operational hardening & tests | ⬜ |
+| Table | Purpose |
+|---|---|
+| `businesses` | tenants/senders (encrypted token, waba_id, phone_number_id) |
+| `business_messages` | traffic log with receipt timestamps, `customer_id` FK |
+| `customers` | customer records, unique `(business_id, phone)` |
+| `conversations` | per business+customer, unread counts, open/closed |
+| `message_templates` | Meta template catalog (populated by sync) |
+| `broadcast_campaigns` / `broadcast_recipients` | campaigns + per-recipient status |
+
+Schema: `sql/netgrity_wa.sql` + `sql/migration_full_features.sql`.
 
 ---
 
