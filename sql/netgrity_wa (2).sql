@@ -31,7 +31,7 @@ CREATE TABLE `broadcast_campaigns` (
   `id` bigint UNSIGNED NOT NULL,
   `business_id` int UNSIGNED NOT NULL,
   `campaign_name` varchar(150) NOT NULL,
-  `payload_type` enum('template','media','interactive') NOT NULL DEFAULT 'template',
+  `payload_type` enum('template','text','media','interactive') NOT NULL DEFAULT 'template',
   `template_name` varchar(150) DEFAULT NULL,
   `message_body` text,
   `media_url` text,

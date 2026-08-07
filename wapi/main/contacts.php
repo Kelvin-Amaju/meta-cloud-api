@@ -2,14 +2,13 @@
 
 // contacts.php — Customer records + CSV contact sync
 
-require_once 'includes/init.php';
-require_once 'includes/customers.php';
-require_once 'includes/messages.php';
-require_once 'includes/conversations.php';
+require_once __DIR__ . '/../_includes/functions.inc.php';
+require_once __DIR__ . '/../_includes/business_functions.inc.php';
+require_once __DIR__ . '/../_includes/customer_functions.inc.php';
 
 $activeNav = 'contacts';
 
-$activeBusinesses = getActiveBusinesses('active');
+$activeBusinesses = get_active_businesses('active');
 
 $alert = null;
 
@@ -18,21 +17,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = $_POST['action'] ?? '';
 
     if ($action === 'create') {
-        $result = createCustomer($_POST);
+        $result = create_customer($_POST);
         $alert = $result['success']
             ? ['type' => 'success', 'title' => 'Contact Added', 'message' => 'Customer record created.']
             : ['type' => 'danger', 'title' => 'Add Failed', 'message' => htmlspecialchars($result['error'])];
 
     } elseif ($action === 'update') {
         $id = (int)($_POST['id'] ?? 0);
-        $result = updateCustomer($id, $_POST);
+        $result = update_customer($id, $_POST);
         $alert = $result['success']
             ? ['type' => 'success', 'title' => 'Contact Updated', 'message' => 'Customer record updated.']
             : ['type' => 'danger', 'title' => 'Update Failed', 'message' => htmlspecialchars($result['error'])];
 
     } elseif ($action === 'delete') {
         $id = (int)($_POST['id'] ?? 0);
-        $alert = deleteCustomer($id)
+        $alert = delete_customer($id)
             ? ['type' => 'success', 'title' => 'Contact Deleted', 'message' => 'Customer record removed.']
             : ['type' => 'danger', 'title' => 'Delete Failed', 'message' => 'Could not delete that contact.'];
 
@@ -92,17 +91,17 @@ $page          = max(1, (int)($_GET['page'] ?? 1));
 $perPage       = 20;
 
 $filters = ['search' => $search, 'business_id' => $businessFilter];
-$result  = getCustomers($filters, $page, $perPage);
+$result  = get_customers($filters, $page, $perPage);
 $customers    = $result['data'];
 $total        = $result['total'];
 $totalPages   = $result['totalPages'];
 $queryError   = $result['error'];
-$stats        = getCustomerStats();
+$stats        = get_customer_stats();
 
 // Editing record
 $editing = null;
 if (isset($_GET['edit'])) {
-    $editing = getCustomerById((int)$_GET['edit']);
+    $editing = get_customer_by_id((int)$_GET['edit']);
 }
 
 function buildQ(array $overrides = []): string
@@ -128,12 +127,12 @@ function buildQ(array $overrides = []): string
 
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
-    <link href="assets/css/app.css" rel="stylesheet">
+    <link href="../assets/css/app.css" rel="stylesheet">
 </head>
 
 <body class="bg-light min-vh-100 d-flex flex-column">
 
-    <?php require __DIR__ . '/includes/partials/navbar.php'; ?>
+    <?php require __DIR__ . '/../_includes/sidebar.inc.php'; ?>
 
     <div class="container py-2 flex-grow-1" style="max-width:1200px;">
 

@@ -1,15 +1,15 @@
 <?php
 
-// includes/broadcasts.php — Broadcast campaigns & synchronous bulk sending
+// includes/broadcasts.php â€” Broadcast campaigns & synchronous bulk sending
 
-require_once __DIR__ . '/database.php';
-require_once __DIR__ . '/businesses.php';
-require_once __DIR__ . '/whatsapp.php';
+require_once __DIR__ . '/db.inc.php';
+require_once __DIR__ . '/business_functions.inc.php';
+require_once __DIR__ . '/whatsapp_functions.inc.php';
 
 /**
  * Create a broadcast campaign record.
  */
-function createCampaign(array $data): array
+function create_campaign(array $data): array
 {
     global $mysqli;
 
@@ -78,7 +78,7 @@ function createCampaign(array $data): array
 /**
  * Paginated campaign list.
  */
-function getCampaigns(int $page = 1, int $perPage = 20): array
+function get_campaigns(int $page = 1, int $perPage = 20): array
 {
     global $mysqli;
 
@@ -119,7 +119,7 @@ function getCampaigns(int $page = 1, int $perPage = 20): array
 /**
  * Fetch a single campaign by id.
  */
-function getCampaignById(int $id): ?array
+function get_campaign_by_id(int $id): ?array
 {
     global $mysqli;
 
@@ -141,7 +141,7 @@ function getCampaignById(int $id): ?array
 /**
  * Store a recipient row for a campaign.
  */
-function saveCampaignRecipient(int $campaignId, string $phone): bool
+function save_campaign_recipient(int $campaignId, string $phone): bool
 {
     global $mysqli;
 
@@ -162,7 +162,7 @@ function saveCampaignRecipient(int $campaignId, string $phone): bool
 /**
  * Get recipient counts for a campaign.
  */
-function getCampaignRecipientCounts(int $campaignId): array
+function get_campaign_recipient_counts(int $campaignId): array
 {
     global $mysqli;
 
@@ -183,20 +183,21 @@ function getCampaignRecipientCounts(int $campaignId): array
 }
 
 /**
- * Run a campaign synchronously — sends to every pending recipient now.
+ * Run a campaign synchronously â€” sends to every pending recipient now.
  *
  * @return array ['success' => bool, 'sent' => int, 'failed' => int, 'error' => ?string]
  */
-function runCampaign(int $campaignId): array
+function run_campaign(int $campaignId): array
 {
+    set_time_limit(0);
     global $mysqli;
 
-    $campaign = getCampaignById($campaignId);
+    $campaign = get_campaign_by_id($campaignId);
     if (!$campaign) {
         return ['success' => false, 'sent' => 0, 'failed' => 0, 'error' => 'Campaign not found.'];
     }
 
-    $business = getBusinessById($campaign['business_id']);
+    $business = get_business($campaign['business_id']);
     if (!$business) {
         return ['success' => false, 'sent' => 0, 'failed' => 0, 'error' => 'Sender business not found.'];
     }
@@ -232,16 +233,16 @@ function runCampaign(int $campaignId): array
 
         switch ($campaign['payload_type']) {
             case 'template':
-                $response = sendTemplateMessage($phone, $campaign['template_name'] ?? '', 'en_US', [], $business);
+                $response = whatsapp_send_template($phone, $campaign['template_name'] ?? '', 'en_US', [], $business);
                 break;
 
             case 'media':
-                $response = sendMediaMessage($phone, $campaign['media_type'] ?? 'image', $campaign['media_url'] ?? '', null, $business);
+                $response = whatsapp_send_media($phone, $campaign['media_type'] ?? 'image', $campaign['media_url'] ?? '', null, $business);
                 break;
 
             case 'text':
             default:
-                $response = sendTextMessage($phone, $campaign['message_body'] ?? '', $business);
+                $response = whatsapp_send_text($phone, $campaign['message_body'] ?? '', $business);
                 break;
         }
 

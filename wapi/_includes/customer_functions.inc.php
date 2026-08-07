@@ -1,13 +1,13 @@
 <?php
 
-// includes/customers.php — Contact / customer records
+// includes/customers.php â€” Contact / customer records
 
-require_once __DIR__ . '/database.php';
+require_once __DIR__ . '/db.inc.php';
 
 /**
  * Normalise a phone number to digits only.
  */
-function normalizePhone(?string $phone): string
+function normalize_phone(?string $phone): string
 {
     return preg_replace('/[^0-9]/', '', (string)$phone);
 }
@@ -16,11 +16,11 @@ function normalizePhone(?string $phone): string
  * Find an existing customer or create a new one for a business/phone pair.
  * Returns the customer id, or 0 on failure.
  */
-function findOrCreateCustomer(int $businessId, string $phone, ?string $name = null): int
+function find_or_create_customer(int $businessId, string $phone, ?string $name = null): int
 {
     global $mysqli;
 
-    $phone = normalizePhone($phone);
+    $phone = normalize_phone($phone);
     if ($phone === '' || $businessId <= 0) {
         return 0;
     }
@@ -50,7 +50,7 @@ function findOrCreateCustomer(int $businessId, string $phone, ?string $name = nu
 /**
  * Paginated, filterable customer list.
  */
-function getCustomers(array $filters = [], int $page = 1, int $perPage = 20): array
+function get_customers(array $filters = [], int $page = 1, int $perPage = 20): array
 {
     global $mysqli;
 
@@ -157,7 +157,7 @@ function getCustomers(array $filters = [], int $page = 1, int $perPage = 20): ar
 /**
  * Fetch a single customer by id.
  */
-function getCustomerById(int $id): ?array
+function get_customer_by_id(int $id): ?array
 {
     global $mysqli;
 
@@ -180,12 +180,12 @@ function getCustomerById(int $id): ?array
 /**
  * Create a customer record manually.
  */
-function createCustomer(array $data): array
+function create_customer(array $data): array
 {
     global $mysqli;
 
     $businessId = (int)($data['business_id'] ?? 0);
-    $phone      = normalizePhone($data['phone'] ?? '');
+    $phone      = normalize_phone($data['phone'] ?? '');
     $name       = trim($data['name'] ?? '');
     $email      = trim($data['email'] ?? '');
     $tags       = trim($data['tags'] ?? '');
@@ -241,16 +241,16 @@ function createCustomer(array $data): array
 /**
  * Update a customer record.
  */
-function updateCustomer(int $id, array $data): array
+function update_customer(int $id, array $data): array
 {
     global $mysqli;
 
-    $existing = getCustomerById($id);
+    $existing = get_customer_by_id($id);
     if (!$existing) {
         return ['success' => false, 'error' => 'Customer not found.'];
     }
 
-    $phone = normalizePhone($data['phone'] ?? $existing['phone']);
+    $phone = normalize_phone($data['phone'] ?? $existing['phone']);
     $name  = trim($data['name'] ?? $existing['name'] ?? '');
     $email = trim($data['email'] ?? $existing['email'] ?? '');
     $tags  = trim($data['tags'] ?? $existing['tags'] ?? '');
@@ -296,7 +296,7 @@ function updateCustomer(int $id, array $data): array
 /**
  * Delete a customer record.
  */
-function deleteCustomer(int $id): bool
+function delete_customer(int $id): bool
 {
     global $mysqli;
 
@@ -323,13 +323,13 @@ function importCustomersFromCsv(int $businessId, array $rows): array
     $errors   = [];
 
     foreach ($rows as $i => $row) {
-        $phone = normalizePhone($row['phone'] ?? '');
+        $phone = normalize_phone($row['phone'] ?? '');
         if ($phone === '') {
             $skipped++;
             continue;
         }
 
-        $result = createCustomer([
+        $result = create_customer([
             'business_id' => $businessId,
             'phone'       => $phone,
             'name'        => $row['name'] ?? '',
@@ -355,7 +355,7 @@ function importCustomersFromCsv(int $businessId, array $rows): array
 /**
  * Summary stats for the contacts page header.
  */
-function getCustomerStats(): array
+function get_customer_stats(): array
 {
     global $mysqli;
 

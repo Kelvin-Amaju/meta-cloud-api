@@ -3,22 +3,22 @@
 // includes/templates.php
 //
 // Mock template data + template-send function. Swap MOCK_TEMPLATES / the
-// body of getTemplatesForBusiness() for a real DB query or Meta API call
-// once you have actual approved templates — call sites elsewhere don't
+// body of get_templates_for_business() for a real DB query or Meta API call
+// once you have actual approved templates â€” call sites elsewhere don't
 // need to change.
 
-require_once __DIR__ . '/../config/config.php';
-require_once __DIR__ . '/businesses.php';
+require_once __DIR__ . '/config.inc.php';
+require_once __DIR__ . '/business_functions.inc.php';
 
 /**
  * Get the list of approved templates available for a given business.
  *
  * Reads from message_templates, populated by bin/sync_templates.php
- * (pulls from Meta's Graph API — see that script for the sync logic).
+ * (pulls from Meta's Graph API â€” see that script for the sync logic).
  * Run the sync any time templates are added/edited/approved in Meta
  * Business Manager to keep this table current.
  */
-function getTemplatesForBusiness(int $businessId): array
+function get_templates_for_business(int $businessId): array
 {
     global $mysqli;
 
@@ -46,9 +46,9 @@ function getTemplatesForBusiness(int $businessId): array
 /**
  * Find a single template by name within a business's available templates.
  */
-function getTemplateByName(int $businessId, string $name): ?array
+function get_template_by_name(int $businessId, string $name): ?array
 {
-    foreach (getTemplatesForBusiness($businessId) as $tpl) {
+    foreach (get_templates_for_business($businessId) as $tpl) {
         if ($tpl['name'] === $name) {
             return $tpl;
         }
@@ -67,9 +67,9 @@ function getTemplateByName(int $businessId, string $name): ?array
  * @param array  $variables   Ordered list of values for {{1}}, {{2}}, ...
  * @param array  $business    Business row (needs phone_number_id, access_token)
  */
-function sendLegacyTemplateMessage(string $phone, array $template, array $variables, array $business): array
+function send_legacy_template_message(string $phone, array $template, array $variables, array $business): array
 {
-    $apiVersion = env('META_API_VERSION', 'v25.0');
+    $apiVersion = $GLOBALS['config']['api_version'] ?? 'v25.0';
     $url = "https://graph.facebook.com/{$apiVersion}/{$business['phone_number_id']}/messages";
 
     $components = [];
@@ -136,19 +136,19 @@ function sendLegacyTemplateMessage(string $phone, array $template, array $variab
  *
  * @return array ['success' => bool, 'count' => int, 'error' => ?string]
  */
-function syncTemplatesFromMeta(int $businessId): array
+function sync_templates_from_meta(int $businessId): array
 {
     global $mysqli;
 
-    $business = getBusinessById($businessId);
+    $business = get_business($businessId);
     if (!$business) {
         return ['success' => false, 'count' => 0, 'error' => 'Business not found.'];
     }
     if (empty($business['waba_id']) || empty($business['access_token'])) {
-        return ['success' => false, 'count' => 0, 'error' => 'Business is missing waba_id or access_token — configure Meta credentials first.'];
+        return ['success' => false, 'count' => 0, 'error' => 'Business is missing waba_id or access_token â€” configure Meta credentials first.'];
     }
 
-    $apiVersion = env('META_API_VERSION', 'v25.0');
+    $apiVersion = $GLOBALS['config']['api_version'] ?? 'v25.0';
     $url = "https://graph.facebook.com/{$apiVersion}/{$business['waba_id']}/message_templates"
         . "?limit=1000&fields=id,name,language,category,status,components";
 
@@ -243,7 +243,7 @@ function syncTemplatesFromMeta(int $businessId): array
 /**
  * Create a template record manually (saved as draft until approved in Meta).
  */
-function createTemplate(array $data): array
+function create_template(array $data): array
 {
     global $mysqli;
 
@@ -292,7 +292,7 @@ function createTemplate(array $data): array
 /**
  * Delete a template record by id.
  */
-function deleteTemplate(int $id): bool
+function delete_template(int $id): bool
 {
     global $mysqli;
 
