@@ -165,7 +165,7 @@ $stats      = getBusinessSummaryStats();
     <div class="container-fluid container-xl mb-5 my-auto">
 
         <!-- Header -->
-        <div class="d-flex align-items-center justify-content-between flex-wrap gap-3 mb-4">
+        <div class="d-flex align-items-center justify-content-between flex-wrap gap-3 mb-4 mt-5">
             <div>
                 <h4 class="fw-bold mb-1">
                     <i class="bi bi-building text-success"></i> Businesses

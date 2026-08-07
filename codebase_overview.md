@@ -56,9 +56,9 @@ whatsapp-api/
 │   ├── analytics.php        ← getMessagesOverTime(), getStatusBreakdown(), getTopCustomers(), ...
 │   ├── tenants.php          ← Legacy compatibility shim
 │   └── partials/
-│       └── navbar.php       ← Shared navbar (uses $navBase for subdirectory pages, inbox unread badge)
+│       └── navbar.php       ← Shared sidebar (uses $navBase for subdirectory pages, inbox unread badge)
 ├── assets/
-│   └── css/app.css          ← Theme: --ng-primary/--ng-orange/--ng-black, .btn-ng-*, .navbar-ng, .card-ng
+│   └── css/app.css          ← Theme: --ng-primary/--ng-orange/--ng-black, .btn-ng-*, .ng-sidebar-*, .card-ng
 ├── bin/
 │   ├── run_migration.php    ← Applies sql/migration_full_features.sql to the live DB
 │   ├── sync_templates.php   ← CLI: sync templates from Meta (all or one business)
@@ -185,7 +185,7 @@ Core tables (see `sql/netgrity_wa.sql` + `sql/migration_full_features.sql`):
 - Broadcast campaigns (CSV + synchronous send with status tracking)
 - Analytics dashboards (Chart.js)
 - Message history with filters/pagination (10/page)
-- Unified theme + shared navbar across all pages
+- Unified theme + shared sidebar across all pages
 - `bin/run_migration.php` applied `migration_full_features.sql` to the live DB (7/7 OK)
 
 ### ⬜ Deferred / Planned
@@ -214,7 +214,7 @@ Core tables (see `sql/netgrity_wa.sql` + `sql/migration_full_features.sql`):
 > Access tokens are AES-encrypted at rest. Always read business credentials through `getBusinessById()` / `getBusinessByPhoneNumberId()`, which decrypt `access_token`.
 
 > [!NOTE]
-> The shared navbar uses relative links prefixed by `$navBase`. Pages in `business/` must set `$navBase = '../'` before requiring `includes/partials/navbar.php`, or nav links 404.
+> The shared sidebar uses relative links prefixed by `$navBase`. Pages in `business/` must set `$navBase = '../'` before requiring `includes/partials/navbar.php`, or nav links 404.
 
 > [!NOTE]
 > `sql/whatsapp-api.sql` is a legacy snapshot; the runtime schema lives in `sql/netgrity_wa.sql` + the `sql/migration_*.sql` files. Apply the full set on a fresh DB.

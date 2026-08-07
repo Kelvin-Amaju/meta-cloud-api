@@ -124,7 +124,7 @@ function buildQ(array $overrides = []): string
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Contacts - Netgrity WhatsApp API</title>
+    <title>Contacts | Netgrity WhatsApp API</title>
 
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
@@ -137,7 +137,7 @@ function buildQ(array $overrides = []): string
 
     <div class="container py-2 flex-grow-1" style="max-width:1200px;">
 
-        <div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
+        <div class="mt-4 d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
             <h4 class="fw-bold mb-0 ng-title">
                 <i class="bi bi-people text-success"></i> Contacts &amp; Customers
             </h4>

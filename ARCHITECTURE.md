@@ -31,7 +31,7 @@ whatsapp-api/
 │   ├── broadcasts.php         # campaigns + synchronous run
 │   ├── analytics.php          # dashboard queries
 │   ├── oauth.php              # metaExchangeOauthCode() shared exchange
-│   └── partials/navbar.php    # shared navbar ($navBase-aware)
+│   └── partials/navbar.php    # shared sidebar ($navBase-aware)
 ├── assets/css/app.css         # theme (white/orange/black)
 ├── bin/                       # run_migration, sync_templates, smoke_test
 ├── sql/                       # netgrity_wa.sql + migration_full_features.sql

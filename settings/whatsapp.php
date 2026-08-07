@@ -33,7 +33,7 @@ $activeNav = 'settings';
 
     <?php require __DIR__ . '/../includes/partials/navbar.php'; ?>
 
-    <div class="container py-2 flex-grow-1" style="max-width:1200px;">
+    <div class="mt-5 container py-2 flex-grow-1" style="max-width:1200px;">
 
         <div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
             <h4 class="fw-bold mb-0 ng-title">

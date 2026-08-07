@@ -110,10 +110,10 @@ $featureCards = [
 
     <div class="container pb-5">
 
-        <div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
+        <div class="mt-5 d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
             <div>
-                <h2 class="fw-bold mb-1 ng-title">Developer Dashboard</h2>
-                <p class="ng-text-muted mb-0">Manage messaging, conversations, templates, broadcasts, and analytics.</p>
+                <h4 class="fw-bold mb-1 ng-title">Developer Dashboard</h4>
+                <p class="ng-text-muted mb-0 fs-6">Manage messaging, conversations, templates, broadcasts, and analytics.</p>
             </div>
             <a href="test" class="btn btn-ng-black btn-sm fw-semibold">
                 <i class="bi bi-cpu me-1"></i> Test API Connection
@@ -131,18 +131,18 @@ $featureCards = [
                         <div class="card-body p-4 d-flex flex-column">
                             <div class="d-flex align-items-center mb-3">
                                 <div class="ng-icon-box p-3 rounded-3 me-3">
-                                    <i class="bi <?= $card['icon'] ?> fs-3"></i>
+                                    <i class="bi <?= $card['icon'] ?> fs-4"></i>
                                 </div>
                                 <div>
-                                    <h5 class="card-title fw-bold mb-0 ng-title"><?= $card['title'] ?></h5>
-                                    <small class="ng-text-muted"><?= $card['subtitle'] ?></small>
+                                    <h5 class="card-title fw-bold mb-0 ng-title fs-6"><?= $card['title'] ?></h5>
+                                    <small class="ng-text-muted fs-6"><?= $card['subtitle'] ?></small>
                                 </div>
                             </div>
                             <div class="small fw-semibold ng-text-muted mb-3">
                                 <span class="badge-ng-soft badge rounded-pill"><?= htmlspecialchars($card['stat']) ?></span>
                             </div>
                             <div class="mt-auto">
-                                <a href="<?= $card['href'] ?>" class="btn <?= $card['btnClass'] ?> w-100 d-flex align-items-center justify-content-center gap-2 fw-semibold">
+                                <a href="<?= $card['href'] ?>" class="btn <?= $card['btnClass'] ?> w-100 fs-6 d-flex align-items-center justify-content-center gap-2 fw-semibold">
                                     <?= $card['cta'] ?> <i class="bi bi-arrow-right"></i>
                                 </a>
                             </div>

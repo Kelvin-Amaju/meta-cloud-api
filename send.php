@@ -515,22 +515,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <?php $activeNav = 'send';
     require __DIR__ . '/includes/partials/navbar.php'; ?>
 
-    <div class="container-fluid container-xl mb-5 my-auto">
+    <div class="mt-5 container-fluid container-xl mb-5 my-auto">
 
         <!-- Header -->
         <div class="d-flex align-items-center justify-content-between mb-4">
             <div>
-                <h3 class="fw-bold text-dark mb-1">
+                <h5 class="fw-bold text-dark mb-1">
                     <i class="bi bi-send-fill text-success me-2"></i>Send WhatsApp Message
-                </h3>
-                <p class="text-muted mb-0">Choose your sender business account and compose your WhatsApp message.</p>
+                </h5>
+                <p class="text-muted mb-0 fs-6">Choose your sender business account and compose your WhatsApp message.</p>
             </div>
         </div>
 
         <?php if ($alert): ?>
             <div class="alert alert-<?= $alert['type'] ?> alert-dismissible fade show shadow-sm border-0 mb-4">
                 <div class="d-flex align-items-center gap-2 mb-1">
-                    <i class="bi bi-<?= $alert['type'] === 'success' ? 'check-circle-fill' : 'exclamation-octagon-fill' ?> fs-5"></i>
+                    <i class="bi bi-<?= $alert['type'] === 'success' ? 'check-circle-fill' : 'exclamation-octagon-fill' ?> fs-6"></i>
                     <h5 class="mb-0 fw-bold"><?= $alert['title'] ?></h5>
                 </div>
 
@@ -579,7 +579,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                             <?php if (empty($activeBusinesses)): ?>
                                 <div class="text-center py-4 text-muted">
-                                    <i class="bi bi-exclamation-circle fs-2 d-block mb-2"></i>
+                                    <i class="bi bi-exclamation-circle fs-4 d-block mb-2"></i>
                                     No active business accounts found.
                                 </div>
                             <?php else: ?>
@@ -595,7 +595,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                                                 <div class="pt-1">
                                                     <input
-                                                        class="form-check-input business-radio fs-5"
+                                                        class="form-check-input business-radio fs-6"
                                                         type="radio"
                                                         name="business_id"
                                                         id="biz_<?= $biz['id'] ?>"
@@ -650,11 +650,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <!-- Active Sender Banner -->
                         <div class="card-header bg-white border-bottom py-3">
                             <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
-                                <h5 class="fw-bold mb-0 text-dark">
+                                <h5 class="fw-bold mb-0 text-dark fs-6">
                                     <i class="bi bi-pencil-square text-success me-2"></i>Compose Message
                                 </h5>
 
-                                <div id="activeSenderDisplay" class="badge bg-success-subtle text-success border border-success-subtle px-3 py-2 fs-6 fw-normal d-flex align-items-center gap-2">
+                                <div id="activeSenderDisplay" class="badge bg-success-subtle text-success fs-6 border border-success-subtle px-3 py-2 d-flex align-items-center gap-2">
                                     <i class="bi bi-check-circle-fill"></i>
                                     <span>Sending as: <strong id="activeCompanyName"><?= htmlspecialchars($selectedBusiness['name'] ?? 'Select Sender') ?></strong></span>
                                 </div>
@@ -703,7 +703,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                     Recipient Phone Number <span class="text-danger">*</span>
                                 </label>
 
-                                <div class="input-group input-group-lg">
+                                <div class="input-group input-group">
                                     <span class="input-group-text bg-white border-end-0 text-secondary">
                                         <i class="bi bi-telephone-fill"></i>
                                     </span>
@@ -740,7 +740,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 <div class="card bg-light border-0 p-3 mb-4 rounded-3">
                                     <div class="form-check form-switch d-flex align-items-center gap-2 mb-1">
                                         <input
-                                            class="form-check-input fs-5 mt-0"
+                                            class="form-check-input fs-6 mt-0"
                                             type="checkbox"
                                             id="allow_reply"
                                             name="allow_reply"
@@ -810,7 +810,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                                         name="media_type"
                                                         value="<?= $mType ?>"
                                                         <?= ($_POST['media_type'] ?? 'image') === $mType ? 'checked' : '' ?>>
-                                                    <i class="bi <?= $mInfo[0] ?> fs-3 d-block mb-1"></i>
+                                                    <i class="bi <?= $mInfo[0] ?> fs-6 d-block mb-1"></i>
                                                     <span class="small"><?= $mInfo[1] ?></span>
                                                 </label>
                                             </div>
@@ -944,12 +944,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                             <!-- Buttons -->
                             <div class="d-flex align-items-center justify-content-between pt-2">
-                                <a href="home" class="btn btn-outline-secondary px-4">
+                                <a href="home" class="btn btn-danger px-4">
                                     <i class="bi bi-x-circle me-1"></i> Cancel
                                 </a>
 
-                                <button type="submit" class="btn btn-ng-secondary btn-lg px-4 shadow-sm">
-                                    <i class="bi bi-paperplane-fill me-2"></i> Send Message
+                                <button type="submit" class="btn btn-ng-secondary btn px-4 shadow-sm">
+                                     Send Message
                                 </button>
                             </div>
 

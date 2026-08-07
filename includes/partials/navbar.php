@@ -1,6 +1,6 @@
 <?php
 
-// includes/partials/navbar.php — Shared navbar for the whole app.
+// includes/partials/navbar.php — Shared sidebar for the whole app.
 // Usage: $activeNav = 'inbox'; require __DIR__ . '/includes/partials/navbar.php';
 // Pages in a subdirectory (e.g. business/) must set $navBase = '../' first.
 
@@ -22,33 +22,70 @@ $navItems = [
 $unreadCount = function_exists('getUnreadCount') ? getUnreadCount() : 0;
 
 ?>
-<nav class="navbar navbar-expand-lg navbar-ng mb-4 shadow-sm">
-    <div class="container">
-        <a class="navbar-brand d-flex align-items-center gap-2 fw-bold" href="<?= $navBase ?>home">
-            <i class="bi bi-whatsapp fs-4" style="color: var(--ng-orange);"></i>
-            <span>Netgrity</span> <span class="ng-accent">WhatsApp API</span>
+<aside class="ng-sidebar" id="ngSidebar" aria-label="Main navigation">
+    <div class="ng-sidebar-header">
+        <a class="ng-sidebar-brand" href="<?= $navBase ?>home">
+            <i class="bi bi-whatsapp"></i>
+            <span><span class="fw-bold">Netgrity</span> <span class="ng-accent">WhatsApp API</span></span>
         </a>
-
-        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#ngNavbar">
-            <span class="navbar-toggler-icon"></span>
-        </button>
-
-        <div class="collapse navbar-collapse" id="ngNavbar">
-            <ul class="navbar-nav me-auto mb-2 mb-lg-0">
-                <?php foreach ($navItems as $key => $item): ?>
-                    <li class="nav-item">
-                        <a class="nav-link <?= $activeNav === $key ? 'active' : '' ?>" href="<?= $navBase . $item['href'] ?>">
-                            <i class="bi <?= $item['icon'] ?> me-1"></i><?= $item['label'] ?>
-                            <?php if ($key === 'inbox' && $unreadCount > 0): ?>
-                                <span class="badge bg-danger rounded-pill ms-1"><?= $unreadCount ?></span>
-                            <?php endif; ?>
-                        </a>
-                    </li>
-                <?php endforeach; ?>
-            </ul>
-            <a href="<?= $navBase ?>send" class="btn btn-ng-secondary btn-sm fw-semibold">
-                <i class="bi bi-send me-1"></i> Send Message
-            </a>
-        </div>
     </div>
-</nav>
+
+    <nav class="ng-sidebar-nav">
+        <?php foreach ($navItems as $key => $item): ?>
+            <a class="ng-sidebar-link <?= $activeNav === $key ? 'active' : '' ?>" href="<?= $navBase . $item['href'] ?>">
+                <i class="bi <?= $item['icon'] ?>"></i>
+                <span><?= $item['label'] ?></span>
+                <?php if ($key === 'inbox' && $unreadCount > 0): ?>
+                    <span class="badge ng-sidebar-badge"><?= $unreadCount ?></span>
+                <?php endif; ?>
+            </a>
+        <?php endforeach; ?>
+    </nav>
+
+    <div class="ng-sidebar-footer">
+        <a href="<?= $navBase ?>send" class="btn btn-ng-secondary w-100 fw-semibold">
+            <i class="bi bi-send me-1"></i> Send Message
+        </a>
+    </div>
+</aside>
+
+<div class="ng-sidebar-backdrop" id="ngSidebarBackdrop"></div>
+<button class="ng-sidebar-toggle" id="ngSidebarToggle" aria-label="Toggle navigation" aria-controls="ngSidebar">
+    <i class="bi bi-list"></i>
+</button>
+
+<script>
+(function () {
+    document.body.classList.add('sidebar-ng');
+
+    var sidebar  = document.getElementById('ngSidebar');
+    var toggle   = document.getElementById('ngSidebarToggle');
+    var backdrop = document.getElementById('ngSidebarBackdrop');
+
+    function open() {
+        sidebar.classList.add('open');
+        if (backdrop) backdrop.classList.add('open');
+    }
+
+    function close() {
+        sidebar.classList.remove('open');
+        if (backdrop) backdrop.classList.remove('open');
+    }
+
+    if (toggle) {
+        toggle.addEventListener('click', function () {
+            sidebar.classList.contains('open') ? close() : open();
+        });
+    }
+
+    if (backdrop) {
+        backdrop.addEventListener('click', close);
+    }
+
+    sidebar.querySelectorAll('.ng-sidebar-link').forEach(function (link) {
+        link.addEventListener('click', function () {
+            if (window.innerWidth < 992) close();
+        });
+    });
+})();
+</script>

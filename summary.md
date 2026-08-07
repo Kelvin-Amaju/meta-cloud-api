@@ -14,7 +14,7 @@ Standalone multi-tenant WhatsApp Business Cloud API platform built on **Core PHP
 - **Analytics** (`analytics.php`) — Chart.js dashboards: messages over time, status/type/business breakdowns, template performance, top customers (`includes/analytics.php`)
 - Webhook verification (GET handshake + `X-Hub-Signature-256` HMAC) and inbound/status intake (`webhook.php`)
 - Message history UI with filters, pagination (10/page), type/status badges (`messages.php`)
-- Shared navbar partial with live unread-inbox badge (`includes/partials/navbar.php`) + unified theme (`assets/css/app.css`)
+- Shared sidebar partial with live unread-inbox badge (`includes/partials/navbar.php`) + unified theme (`assets/css/app.css`) — fixed 260px off-canvas sidebar (mobile toggle)
 - CLI tooling (`bin/`): `sync_templates.php`, `run_migration.php`, `smoke_test.php`, `smoke_one.php`, `check_db.php`
 
 **Known gaps (not addressed this session):**
